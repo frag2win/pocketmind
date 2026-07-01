@@ -1,4 +1,4 @@
-package com.example.pocketmind.ui.theme
+package com.frag2win.pocketmind.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

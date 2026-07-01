@@ -1,4 +1,4 @@
-package com.example.pocketmind
+package com.frag2win.pocketmind
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,8 +11,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.pocketmind.ui.theme.PocketMindTheme
+import com.frag2win.pocketmind.ui.theme.PocketMindTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -20,10 +22,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             PocketMindTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    com.frag2win.pocketmind.ui.chat.ChatScreenRoot()
                 }
             }
         }
