@@ -12,6 +12,7 @@ import com.frag2win.pocketmind.data.local.ChatMessage
 
 @Composable
 fun ChatScreenRoot(
+    modifier: Modifier = Modifier,
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val messages by viewModel.messages.collectAsState()
@@ -22,7 +23,8 @@ fun ChatScreenRoot(
         messages = messages,
         isGenerating = isGenerating,
         streamingMessage = streamingMessage,
-        onSendMessage = { viewModel.sendMessage(it) }
+        onSendMessage = { viewModel.sendMessage(it) },
+        modifier = modifier
     )
 }
 
@@ -31,11 +33,12 @@ fun ChatScreen(
     messages: List<ChatMessage>,
     isGenerating: Boolean,
     streamingMessage: String?,
-    onSendMessage: (String) -> Unit
+    onSendMessage: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var inputText by remember { mutableStateOf("") }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         LazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(vertical = 8.dp)

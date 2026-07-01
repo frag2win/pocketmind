@@ -22,7 +22,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             PocketMindTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    com.frag2win.pocketmind.ui.chat.ChatScreenRoot()
+                    com.frag2win.pocketmind.ui.chat.ChatScreenRoot(
+                        modifier = Modifier
+                            .padding(innerPadding)
+                            .androidx.compose.foundation.layout.consumeWindowInsets(innerPadding)
+                            .androidx.compose.foundation.layout.imePadding()
+                    )
                 }
             }
         }
