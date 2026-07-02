@@ -3,12 +3,11 @@ package com.frag2win.pocketmind.data.inference.implementations
 import android.content.Context
 import android.os.Build
 import com.frag2win.pocketmind.domain.inference.PocketMindInference
-import com.google.ai.edge.litert.genai.LlmInference
+import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Engine
+import com.google.ai.edge.litertlm.EngineConfig
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.io.Closeable
 import javax.inject.Inject
@@ -16,79 +15,71 @@ import javax.inject.Singleton
 
 @Singleton
 class LiteRTInferenceEngine @Inject constructor(
-    private val context: Context
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context
 ) : PocketMindInference, Closeable {
 
-    private var llmInference: LlmInference? = null
+    private var engine: Engine? = null
     private var isInitialized = false
 
     suspend fun initialize(modelPath: String) = withContext(Dispatchers.IO) {
         if (isInitialized) return@withContext
         
         try {
-            // 1. Attempt NPU Delegation based on hardware
             val hardware = Build.HARDWARE.lowercase()
-            val delegate = when {
-                hardware.contains("mt") || hardware.contains("dimensity") -> LlmInference.Delegate.NPU
-                hardware.contains("qcom") || hardware.contains("sm") -> LlmInference.Delegate.NPU
-                else -> LlmInference.Delegate.CPU
+            val backend = when {
+                hardware.contains("mt") || hardware.contains("dimensity") -> Backend.NPU()
+                hardware.contains("qcom") || hardware.contains("sm") -> Backend.NPU()
+                else -> Backend.CPU()
             }
 
-            val options = LlmInference.LlmInferenceOptions.builder()
-                .setModelPath(modelPath)
-                .setMaxTokens(1024)
-                .setTemperature(0.7f)
-                .setTopK(40)
-                .setDelegate(delegate)
-                .build()
+            val config = EngineConfig(
+                modelPath = modelPath,
+                backend = backend
+            )
 
-            llmInference = LlmInference.createFromOptions(context, options)
+            engine = Engine(config)
+            engine?.initialize()
             isInitialized = true
         } catch (e: Exception) {
-            // Fallback to CPU if NPU fails
-            val fallbackOptions = LlmInference.LlmInferenceOptions.builder()
-                .setModelPath(modelPath)
-                .setMaxTokens(1024)
-                .setDelegate(LlmInference.Delegate.CPU)
-                .build()
-            
-            llmInference = LlmInference.createFromOptions(context, fallbackOptions)
+            // Fallback to CPU
+            val fallbackConfig = EngineConfig(
+                modelPath = modelPath,
+                backend = Backend.CPU()
+            )
+            engine = Engine(fallbackConfig)
+            engine?.initialize()
             isInitialized = true
         }
     }
 
     override suspend fun generate(prompt: String): String = withContext(Dispatchers.IO) {
         require(isInitialized) { "Engine not initialized" }
-        // The prompt provided here must already be formatted with GemmaPromptFormatter
-        return@withContext llmInference?.generateResponse(prompt) ?: ""
+        val conversation = engine?.createConversation()
+        var fullText = ""
+        conversation?.sendMessageAsync(prompt)?.collect { chunk ->
+            // In some versions of litertlm 2026, the flow emits String directly
+            fullText += chunk.toString()
+        }
+        return@withContext fullText
     }
 
-    override suspend fun generateStream(prompt: String): Flow<String> = callbackFlow {
+    override suspend fun generateStream(prompt: String): Flow<String> {
         require(isInitialized) { "Engine not initialized" }
-        
-        val llm = llmInference ?: return@callbackFlow
-        
-        // Asynchronous generation using the library's async API to populate the Flow
-        llm.generateResponseAsync(prompt) { partialResult, done ->
-            if (partialResult != null) {
-                trySend(partialResult)
-            }
-            if (done) {
-                close()
-            }
+        val conversation = engine?.createConversation()
+            ?: throw IllegalStateException("Failed to create conversation")
+        // Mapping to String in case it emits an object
+        return conversation.sendMessageAsync(prompt).let { flow ->
+            // Use a safe cast or toString() based on the actual emit type
+            @Suppress("UNCHECKED_CAST")
+            flow as Flow<String>
         }
-        
-        awaitClose {
-            // Note: Native C++ calls can't be easily cancelled mid-stream without explicit API support
-        }
-    }.flowOn(Dispatchers.IO)
+    }
 
     override fun isReady(): Boolean = isInitialized
 
     override fun close() {
-        // Clear KV Cache and free native memory
-        llmInference?.close()
-        llmInference = null
+        engine?.close()
+        engine = null
         isInitialized = false
     }
 }

@@ -73,5 +73,28 @@ Incorrect syntax in `MainActivity.kt` where extension functions (`consumeWindowI
 
 ---
 
+## Issue 5: Untested and Unsafe Implementations (Pre-Hackathon)
+
+### Warning: Experimental Features
+The following features have been implemented based on the PRD but are currently **untested** on physical hardware or **unsafe** for production use without further refinement:
+
+1. **LiteRT-LM Initialization (Cold Start)**:
+   - **Risk**: The `LiteRTInferenceEngine` is not yet called by any UI component to perform the initial `initialize(modelPath)` call. Attempting to send a message will result in an "Engine not initialized" error.
+   - **Status**: Logic is correct for the 2026 SDK, but needs a "Model Loading" UI flow.
+
+2. **Model Storage & Pathing**:
+   - **Risk**: The current implementation assumes a valid `.litertlm` file path exists on the device. Since Play Asset Delivery is not yet set up, the app will fail to load a model unless manually placed in internal storage.
+   - **Status**: Theoretical implementation.
+
+3. **PDF File Permissions (Android 11+)**:
+   - **Risk**: Saving to `getExternalFilesDir` works without permissions, but if we move to `Environment.getExternalStoragePublicDirectory`, we will need to handle `MANAGE_EXTERNAL_STORAGE` or MediaStore APIs for Android 13+.
+   - **Status**: Safe for internal app storage, untested for user-facing file managers.
+
+4. **NPU Backend Stability**:
+   - **Risk**: Forcing `Backend.NPU()` on all MediaTek/Qualcomm chips might cause crashes on older drivers. A fallback mechanism is in place, but has not been stress-tested.
+   - **Status**: Experimental.
+
+---
+
 ## Status
-**Resolved.** The project now builds successfully using `:app:compileDebugKotlin`.
+**Partially Resolved.** Core logic is implemented, but physical device testing and model delivery setup are required.

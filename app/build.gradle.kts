@@ -67,4 +67,15 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.litert.genai)
+    implementation(libs.litert)
+
+    // PDF Generation
+    implementation(libs.itext7.core)
+    implementation(libs.itext7.kernel)
+    implementation(libs.itext7.layout)
+
+    // Navigation & Security
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.compose.material.icons.extended)
 }
