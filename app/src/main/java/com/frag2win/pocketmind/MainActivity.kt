@@ -1,4 +1,5 @@
 package com.frag2win.pocketmind
+// Dummy comment to trigger GitHub Action
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
