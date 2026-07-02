@@ -15,30 +15,13 @@ import javax.inject.Singleton
  */
 @Singleton
 class InferenceFactory @Inject constructor(
-    private val aiCoreInference: AICoreInference,
-    private val qnnInference: QNNInference,
-    private val neuronInference: NeuronInference,
-    private val liteRTCPUInference: LiteRTCPUInference
+    private val liteRTEngine: com.frag2win.pocketmind.data.inference.implementations.LiteRTInferenceEngine
 ) {
     /**
      * Detects hardware and returns the best available inference backend.
+     * Note: LiteRTInferenceEngine now handles NPU/CPU delegation internally.
      */
     fun getInferenceImplementation(): PocketMindInference {
-        val hardware = Build.HARDWARE.lowercase()
-        val board = Build.BOARD.lowercase()
-
-        return when {
-            // Google Tensor detection
-            hardware.contains("tensor") || hardware.contains("gs") -> aiCoreInference
-
-            // Qualcomm Snapdragon detection
-            hardware.contains("qcom") || board.contains("msm") || board.contains("sm") || board.contains("sdm") -> qnnInference
-
-            // MediaTek Dimensity detection
-            hardware.contains("mt") || board.contains("mt") -> neuronInference
-
-            // Fallback for others
-            else -> liteRTCPUInference
-        }
+        return liteRTEngine
     }
 }
