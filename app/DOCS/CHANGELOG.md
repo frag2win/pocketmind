@@ -5,7 +5,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 02, 2026
   
   ### Added
-- **FEATURE: PDF Generation**: Added on-device PDF export for AI responses using iText7.
+- **FEATURE: PDF Generation**: Added on-device PDF export for AI responses using iText7. *(Note: Implemented but not tested. Not a safe branch.)*
 - **FEATURE: Model Selection UI**: New Settings screen with manual model override (E4B, E2B, E2B_INT4) and RAM-aware auto-selection.
 - **UI: Navigation**: Integrated Bottom Navigation Bar for switching between Chat and Settings.
 - **CHORE: Dependency Update**: Upgraded to LiteRT-LM v0.13.1 for enhanced NPU support and better streaming.
