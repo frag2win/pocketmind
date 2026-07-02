@@ -1,0 +1,72 @@
+name: Auto Documentation Update
+
+on:
+  push:
+    paths-ignore:
+      - 'app/DOCS/**'
+      - 'agent.md'
+      - '.github/workflows/**'
+
+jobs:
+  update-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update Changelog
+        shell: bash
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          DATE=$(date +'%B %d, %Y')
+          CHANGELOG="app/DOCS/CHANGELOG.md"
+          
+          # Extract prefix and description
+          PREFIX=$(echo "$COMMIT_MSG" | grep -oE '^(FEATURE|BUG|UI|PERF|SEC|DOCS|REFACTOR):' | tr -d ':')
+          DESC=$(echo "$COMMIT_MSG" | sed -E 's/^(FEATURE|BUG|UI|PERF|SEC|DOCS|REFACTOR):[[:space:]]*//')
+
+          if [ -z "$PREFIX" ]; then
+            echo "No valid documentation prefix found in commit message. Skipping."
+            exit 0
+          fi
+
+          # Map prefix to section
+          SECTION=""
+          case $PREFIX in
+            FEATURE) SECTION="### Added" ;;
+            BUG|UI) SECTION="### Fixed" ;;
+            REFACTOR|PERF|SEC|DOCS) SECTION="### Changed" ;;
+          esac
+
+          # Update the file
+          if grep -q "## \[Unreleased\] - $DATE" "$CHANGELOG"; then
+            # Entry for today already exists, append under the section
+            sed -i "/$SECTION/a - $DESC" "$CHANGELOG"
+          else
+            # Create a new entry for today
+            sed -i "/All notable changes/a \\
+            \\
+            ## [Unreleased] - $DATE\\
+            \\
+            ### Added\\
+            \\
+            ### Fixed\\
+            \\
+            ### Changed" "$CHANGELOG"
+            
+            sed -i "/$SECTION/a - $DESC" "$CHANGELOG"
+          fi
+
+          # Clean up empty sections if needed (optional)
+          
+          # Commit the changes
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add "$CHANGELOG"
+          git commit -m "CHORE: Automatically update CHANGELOG.md [skip ci]"
+          git push

@@ -56,5 +56,22 @@ Updated `MainActivity.kt` to use `ChatScreenRoot()`, which uses Hilt to inject t
 
 ---
 
+## Issue 4: Unresolved reference 'androidx' in MainActivity
+
+### Error Description
+```
+e: file:///.../MainActivity.kt:28:30 Unresolved reference 'androidx'.
+```
+
+### Root Cause
+Incorrect syntax in `MainActivity.kt` where extension functions (`consumeWindowInsets`, `imePadding`) were prefixed with their fully qualified package names inside a `Modifier` chain (e.g., `.androidx.compose.foundation.layout.imePadding()`). Kotlin expects extension functions to be called directly on the receiver object, with the package imported at the top of the file.
+
+### Resolution
+1.  **Refactored Modifier Chain:** Removed the package prefixes from the extension function calls.
+2.  **Updated Imports:** Added explicit imports for `androidx.compose.foundation.layout.consumeWindowInsets` and `androidx.compose.foundation.layout.imePadding`.
+3.  **Resolved Symbol:** Also updated the `ChatScreenRoot` call to remove its fully qualified prefix and added its import.
+
+---
+
 ## Status
-**Resolved.** The project now builds successfully using `:app:assembleDebug`.
+**Resolved.** The project now builds successfully using `:app:compileDebugKotlin`.
