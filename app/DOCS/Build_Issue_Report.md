@@ -56,5 +56,45 @@ Updated `MainActivity.kt` to use `ChatScreenRoot()`, which uses Hilt to inject t
 
 ---
 
+## Issue 4: Unresolved reference 'androidx' in MainActivity
+
+### Error Description
+```
+e: file:///.../MainActivity.kt:28:30 Unresolved reference 'androidx'.
+```
+
+### Root Cause
+Incorrect syntax in `MainActivity.kt` where extension functions (`consumeWindowInsets`, `imePadding`) were prefixed with their fully qualified package names inside a `Modifier` chain (e.g., `.androidx.compose.foundation.layout.imePadding()`). Kotlin expects extension functions to be called directly on the receiver object, with the package imported at the top of the file.
+
+### Resolution
+1.  **Refactored Modifier Chain:** Removed the package prefixes from the extension function calls.
+2.  **Updated Imports:** Added explicit imports for `androidx.compose.foundation.layout.consumeWindowInsets` and `androidx.compose.foundation.layout.imePadding`.
+3.  **Resolved Symbol:** Also updated the `ChatScreenRoot` call to remove its fully qualified prefix and added its import.
+
+---
+
+## Issue 5: Untested and Unsafe Implementations (Pre-Hackathon)
+
+### Warning: Experimental Features
+The following features have been implemented based on the PRD but are currently **untested** on physical hardware or **unsafe** for production use without further refinement:
+
+1. **LiteRT-LM Initialization (Cold Start)**:
+   - **Risk**: The `LiteRTInferenceEngine` is not yet called by any UI component to perform the initial `initialize(modelPath)` call. Attempting to send a message will result in an "Engine not initialized" error.
+   - **Status**: Logic is correct for the 2026 SDK, but needs a "Model Loading" UI flow.
+
+2. **Model Storage & Pathing**:
+   - **Risk**: The current implementation assumes a valid `.litertlm` file path exists on the device. Since Play Asset Delivery is not yet set up, the app will fail to load a model unless manually placed in internal storage.
+   - **Status**: Theoretical implementation.
+
+3. **PDF File Permissions (Android 11+)**:
+   - **Risk**: Saving to `getExternalFilesDir` works without permissions, but if we move to `Environment.getExternalStoragePublicDirectory`, we will need to handle `MANAGE_EXTERNAL_STORAGE` or MediaStore APIs for Android 13+.
+   - **Status**: Safe for internal app storage, untested for user-facing file managers.
+
+4. **NPU Backend Stability**:
+   - **Risk**: Forcing `Backend.NPU()` on all MediaTek/Qualcomm chips might cause crashes on older drivers. A fallback mechanism is in place, but has not been stress-tested.
+   - **Status**: Experimental.
+
+---
+
 ## Status
-**Resolved.** The project now builds successfully using `:app:assembleDebug`.
+**Partially Resolved.** Core logic is implemented, but physical device testing and model delivery setup are required.

@@ -21,7 +21,8 @@ fun ChatScreenPreview() {
             ),
             isGenerating = false,
             streamingMessage = null,
-            onSendMessage = {}
+            onSendMessage = {},
+            onExportPdf = {}
         )
     }
 }
@@ -31,9 +32,15 @@ fun ChatScreenPreview() {
 fun MessageBubblePreview() {
     MaterialTheme {
         Column(modifier = Modifier.padding(16.dp)) {
-            MessageBubble(message = ChatMessage(role = "user", content = "User message bubble"))
+            MessageBubble(
+                message = ChatMessage(role = "user", content = "User message bubble"),
+                onExportPdf = {}
+            )
             Spacer(modifier = Modifier.height(8.dp))
-            MessageBubble(message = ChatMessage(role = "assistant", content = "Assistant message bubble"))
+            MessageBubble(
+                message = ChatMessage(role = "assistant", content = "Assistant message bubble"),
+                onExportPdf = {}
+            )
         }
     }
 }

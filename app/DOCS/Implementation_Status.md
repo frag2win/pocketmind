@@ -27,10 +27,15 @@ This document tracks the current progress of the project, mapping implemented fe
 - **Dynamic Singleton Routing:** Implemented a factory-based Hilt injection pattern to ensure the engine is resolved once at runtime, which is a production-grade optimization not explicitly detailed in the PRD but essential for performance.
 
 ## 4. Pending Hackathon Goals (PRD Section 3)
-- [ ] Working conversational AI chat UI
-- [ ] PDF generation from AI output
+- [x] Working conversational AI chat UI (Jetpack Compose + Room DB integrated)
+- [x] PDF generation from AI output (iText7 integration)
 - [ ] GitHub repository browser
 - [ ] Live demo-ready prototype
+
+## 5. New Features (Settings & Control)
+- [x] Model Selection UI (E2B INT4 / E2B / E4B toggle)
+- [x] RAM-aware auto-selection logic
+- [x] Bottom Navigation support
 
 ---
 *Updated: July 2026*
