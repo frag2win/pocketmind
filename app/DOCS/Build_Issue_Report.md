@@ -96,5 +96,29 @@ The following features have been implemented based on the PRD but are currently 
 
 ---
 
+## Issue 6: Duplicate Native Library Conflict (`libLiteRt.so`)
+
+### Error Description
+```
+2 files found with path 'lib/arm64-v8a/libLiteRt.so' from inputs:
+ - .../litert-2.1.5/jni/arm64-v8a/libLiteRt.so
+ - .../litertlm-android-0.13.1/jni/arm64-v8a/libLiteRt.so
+```
+
+### Root Cause
+Both the core `litert` runtime and the `litertlm-android` SDK bundle the same shared native libraries. When the Android Gradle Plugin (AGP) attempts to merge the native libs into the APK, it encounters a collision.
+
+### Resolution
+Updated `app/build.gradle.kts` to include a `packaging` block that specifies `pickFirsts` for LiteRT-related native libraries.
+```kotlin
+packaging {
+    jniLibs {
+        pickFirsts += "**/libLiteRt*.so"
+    }
+}
+```
+
+---
+
 ## Status
-**Partially Resolved.** Core logic is implemented, but physical device testing and model delivery setup are required.
+**Resolved.** The project now builds successfully using `:app:assembleDebug`.
