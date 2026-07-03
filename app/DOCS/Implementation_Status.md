@@ -41,6 +41,7 @@ This document tracks the current progress of the project, mapping implemented fe
 - [x] First-token UX optimization ("Thinking..." state)
 - [x] Custom Model Downloader (OkHttp + Coroutines stream)
 - [x] Secure HF Token management
+- [x] Corrected Model URLs (litert-community)
 
 ---
 *Updated: July 2026*

@@ -26,6 +26,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **BUG: Crash Protection**: Implemented model file validation and fallback to prevent native crashes from missing assets.
 - **BUG: Build Fix**: Resolved `libLiteRt.so` native library conflict in `build.gradle.kts`.
 - **BUG: Permissions**: Added missing `INTERNET` and `ACCESS_NETWORK_STATE` permissions to `AndroidManifest.xml`.
+- **BUG: Model Downloads**: Fixed 404 error by updating Gemma 4 download URLs to official `litert-community` paths.
   
   ### Fixed
   
