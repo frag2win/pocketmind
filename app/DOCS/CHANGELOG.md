@@ -8,6 +8,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - Complete production architecture overhaul, custom downloader, and security patches
   
   ### Fixed
+- Fix model download URLs to litert-community paths
   
   ### Changed
 - Update status and build reports
@@ -29,6 +30,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **BUG: Model Downloads**: Fixed 404 error by updating Gemma 4 download URLs to official `litert-community` paths.
   
   ### Fixed
+- Fix model download URLs to litert-community paths
   
   ### Changed
 - Update status and build reports
@@ -36,6 +38,7 @@ All notable changes to the PocketMind project will be documented in this file.
 ## [Unreleased] - July 01, 2026
 
 ### Fixed
+- Fix model download URLs to litert-community paths
 - **MainActivity.kt:** Resolved "Unresolved reference 'androidx'" build error by correcting extension function call syntax and adding missing imports for `consumeWindowInsets` and `imePadding`.
 - **MainActivity.kt:** Cleaned up fully qualified names for `ChatScreenRoot` and `Modifier` extensions to improve readability and comply with standard Kotlin style.
 
