@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.pocketmind"
+    namespace = "com.frag2win.pocketmind"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -14,7 +14,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.pocketmind"
+        applicationId = "com.frag2win.pocketmind"
         minSdk = 31
         targetSdk = 36
         versionCode = 1
@@ -28,6 +28,14 @@ android {
             optimization {
                 enable = false
             }
+        }
+    }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        jniLibs {
+            pickFirsts += "**/libLiteRt*.so"
         }
     }
     compileOptions {
@@ -78,4 +86,8 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.compose.material.icons.extended)
+
+    // Networking
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
 }
