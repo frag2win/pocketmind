@@ -28,7 +28,7 @@ fun ChatScreenRoot(
         AlertDialog(
             onDismissRequest = { viewModel.clearPdfStatus() },
             title = { Text("PDF Generated") },
-            text = { Text("PDF saved to: ${pdfFile?.absolutePath}") },
+            text = { Text("PDF saved successfully to your Documents folder.") },
             confirmButton = {
                 TextButton(onClick = { viewModel.clearPdfStatus() }) {
                     Text("OK")
