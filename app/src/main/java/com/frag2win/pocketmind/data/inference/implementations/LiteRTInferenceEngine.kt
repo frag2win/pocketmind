@@ -84,8 +84,9 @@ class LiteRTInferenceEngine @Inject constructor(
         val conversation = engine?.createConversation()
         var fullText = ""
         conversation?.sendMessageAsync(prompt)?.collect { message ->
-            // Correctly extract text from the Message object in LiteRT-LM 2026
-            fullText += (message.text ?: "")
+            // Use toString() as a temporary fallback to see the object structure in logs
+            // and try to find the correct property if .text or .content fail.
+            fullText += message.toString()
         }
         return@withContext fullText
     }
@@ -95,8 +96,8 @@ class LiteRTInferenceEngine @Inject constructor(
         val conversation = engine?.createConversation()
             ?: throw IllegalStateException("Failed to create conversation")
         
-        // Correctly map the Message object stream to a String stream
-        return conversation.sendMessageAsync(prompt).map { it.text ?: "" }
+        // Use toString() to avoid cast error until exact property is found
+        return conversation.sendMessageAsync(prompt).map { it.toString() }
     }
 
     override fun isReady(): Boolean = isInitialized
