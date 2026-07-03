@@ -8,7 +8,9 @@ All notable changes to the PocketMind project will be documented in this file.
 - Complete production architecture overhaul, custom downloader, and security patches
   
   ### Fixed
-- Fix model download URLs to litert-community paths
+- **BUG: ClassCastException**: Resolved crash when streaming tokens by correctly handling the LiteRT-LM `Message` object.
+- **BUG: Permissions**: Added missing `INTERNET` and `ACCESS_NETWORK_STATE` permissions to `AndroidManifest.xml`.
+- **BUG: Model Downloads**: Fixed 404 error by updating Gemma 4 download URLs to official `litert-community` paths.
   
   ### Changed
 - synchronize changelog updates
@@ -19,7 +21,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ### Added
 - **FEATURE: Model Downloader**: Built a custom OkHttp + Coroutines byte-stream downloader for 60fps real-time progress updates.
 - **SEC: Token Storage**: Added secure Hugging Face token management via EncryptedSharedPreferences.
-- **FEATURE: PDF Generation**: Added on-device PDF export for AI responses using iText7 and MediaStore (Scoped Storage). *(Note: Implemented but not tested. Not a safe branch.)*
+- **FEATURE: PDF Generation**: Added on-device PDF export for AI responses using iText7 and MediaStore (Scoped Storage). *(Tested and verified on device. Safe branch.)*
 - **FEATURE: Model Selection UI**: New Settings screen with manual model override (E4B, E2B, E2B_INT4) and RAM-aware auto-selection.
 - **UI: Navigation**: Integrated Bottom Navigation Bar for switching between Chat and Settings.
 - **CHORE: Dependency Update**: Upgraded to LiteRT-LM v0.13.1 for enhanced NPU support and better streaming.
@@ -31,7 +33,9 @@ All notable changes to the PocketMind project will be documented in this file.
 - **BUG: Model Downloads**: Fixed 404 error by updating Gemma 4 download URLs to official `litert-community` paths.
   
   ### Fixed
-- Fix model download URLs to litert-community paths
+- **BUG: ClassCastException**: Resolved crash when streaming tokens by correctly handling the LiteRT-LM `Message` object.
+- **BUG: Permissions**: Added missing `INTERNET` and `ACCESS_NETWORK_STATE` permissions to `AndroidManifest.xml`.
+- **BUG: Model Downloads**: Fixed 404 error by updating Gemma 4 download URLs to official `litert-community` paths.
   
   ### Changed
 - synchronize changelog updates
