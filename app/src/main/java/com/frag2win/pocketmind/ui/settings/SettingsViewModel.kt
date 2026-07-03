@@ -3,33 +3,72 @@ package com.frag2win.pocketmind.ui.settings
 import android.app.ActivityManager
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.frag2win.pocketmind.data.local.ModelPreferences
+import com.frag2win.pocketmind.data.repository.ModelDownloadRepository
 import com.frag2win.pocketmind.domain.inference.GemmaVariant
+import com.frag2win.pocketmind.domain.remote.DownloadState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val modelPreferences: ModelPreferences
+    private val modelPreferences: ModelPreferences,
+    private val downloadRepository: ModelDownloadRepository
 ) : ViewModel() {
-
-    private val _selectedVariant = MutableStateFlow(
-        modelPreferences.getSelectedVariant()?.let { GemmaVariant.valueOf(it) } ?: GemmaVariant.E2B
-    )
-    val selectedVariant = _selectedVariant.asStateFlow()
 
     private val _isAutoSelect = MutableStateFlow(modelPreferences.isAutoSelectEnabled())
     val isAutoSelect = _isAutoSelect.asStateFlow()
+
+    private val _selectedVariant = MutableStateFlow(
+        modelPreferences.getSelectedVariant()?.let { GemmaVariant.valueOf(it) } 
+            ?: if (_isAutoSelect.value) getAutoRecommendedVariant() else GemmaVariant.E2B
+    )
+    val selectedVariant = _selectedVariant.asStateFlow()
+
+    private val _hfToken = MutableStateFlow(modelPreferences.getHfToken() ?: "")
+    val hfToken = _hfToken.asStateFlow()
+
+    private val _downloadStatuses = MutableStateFlow<Map<GemmaVariant, DownloadState>>(
+        GemmaVariant.values().associateWith { variant ->
+            if (downloadRepository.isModelDownloaded(variant)) DownloadState.Completed 
+            else DownloadState.Idle
+        }
+    )
+    val downloadStatuses = _downloadStatuses.asStateFlow()
 
     fun updateVariant(variant: GemmaVariant) {
         _selectedVariant.value = variant
         modelPreferences.setSelectedVariant(variant)
         modelPreferences.setAutoSelectEnabled(false)
         _isAutoSelect.value = false
+    }
+
+    fun updateHfToken(token: String) {
+        _hfToken.value = token
+        modelPreferences.setHfToken(token)
+    }
+
+    fun downloadModel(variant: GemmaVariant) {
+        viewModelScope.launch {
+            downloadRepository.downloadModel(variant, variant.downloadUrl).collect { state ->
+                _downloadStatuses.value = _downloadStatuses.value.toMutableMap().apply {
+                    put(variant, state)
+                }
+            }
+        }
+    }
+
+    fun deleteModel(variant: GemmaVariant) {
+        downloadRepository.deleteModel(variant)
+        _downloadStatuses.value = _downloadStatuses.value.toMutableMap().apply {
+            put(variant, DownloadState.Idle)
+        }
     }
 
     fun setAutoSelect(enabled: Boolean) {

@@ -1,11 +1,15 @@
 package com.frag2win.pocketmind.ui.chat
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.frag2win.pocketmind.data.local.ChatDao
 import com.frag2win.pocketmind.data.local.ChatMessage
+import com.frag2win.pocketmind.data.local.ModelPreferences
+import com.frag2win.pocketmind.data.inference.implementations.LiteRTInferenceEngine
 import com.frag2win.pocketmind.domain.docs.PdfGenerator
 import com.frag2win.pocketmind.domain.inference.GemmaPromptFormatter
+import com.frag2win.pocketmind.domain.inference.GemmaVariant
 import com.frag2win.pocketmind.domain.inference.PocketMindInference
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +25,8 @@ import javax.inject.Inject
 class ChatViewModel @Inject constructor(
     private val inferenceEngine: PocketMindInference,
     private val chatDao: ChatDao,
-    private val pdfGenerator: PdfGenerator
+    private val pdfGenerator: PdfGenerator,
+    private val modelPreferences: ModelPreferences
 ) : ViewModel() {
 
     val messages: StateFlow<List<ChatMessage>> = chatDao.getAllMessages()
@@ -33,13 +38,13 @@ class ChatViewModel @Inject constructor(
     private val _streamingMessage = MutableStateFlow<String?>(null)
     val streamingMessage: StateFlow<String?> = _streamingMessage.asStateFlow()
 
-    private val _pdfExportStatus = MutableStateFlow<File?>(null)
+    private val _pdfExportStatus = MutableStateFlow<Uri?>(null)
     val pdfExportStatus = _pdfExportStatus.asStateFlow()
 
     fun exportToPdf(message: ChatMessage) {
         viewModelScope.launch {
-            val file = pdfGenerator.generateChatPdf(message.content)
-            _pdfExportStatus.value = file
+            val uri = pdfGenerator.generateChatPdf(message.content)
+            _pdfExportStatus.value = uri
         }
     }
 
@@ -57,13 +62,32 @@ class ChatViewModel @Inject constructor(
             chatDao.insertMessage(ChatMessage(role = "user", content = content))
             
             try {
+                // Architectural Patch: Ensure model is initialized before first inference
+                if (!inferenceEngine.isReady() && inferenceEngine is LiteRTInferenceEngine) {
+                    val selectedVariantName = modelPreferences.getSelectedVariant()
+                    val variant = if (selectedVariantName != null) {
+                        GemmaVariant.valueOf(selectedVariantName)
+                    } else {
+                        GemmaVariant.E2B // Default
+                    }
+                    inferenceEngine.initializeSafe(variant)
+                }
+
                 // Construct the full history including the newly added message
                 val currentHistory = messages.value + ChatMessage(role = "user", content = content)
                 val formattedPrompt = GemmaPromptFormatter.formatHistory(currentHistory)
 
+                // Inject temporary "Thinking..." state
+                _streamingMessage.value = "Thinking..."
+
                 var fullResponse = ""
+                var isFirstToken = true
                 val responseFlow = inferenceEngine.generateStream(formattedPrompt)
                 responseFlow.collect { token ->
+                    if (isFirstToken) {
+                        _streamingMessage.value = "" // Clear "Thinking..."
+                        isFirstToken = false
+                    }
                     fullResponse += token
                     _streamingMessage.value = fullResponse
                 }

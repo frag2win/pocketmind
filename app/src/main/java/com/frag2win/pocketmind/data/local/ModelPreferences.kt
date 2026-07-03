@@ -40,8 +40,17 @@ class ModelPreferences @Inject constructor(
         prefs.edit().putBoolean(KEY_AUTO_SELECT, enabled).apply()
     }
 
+    fun getHfToken(): String? {
+        return prefs.getString(KEY_HF_TOKEN, null)
+    }
+
+    fun setHfToken(token: String) {
+        prefs.edit().putString(KEY_HF_TOKEN, token).apply()
+    }
+
     companion object {
         private const val KEY_SELECTED_VARIANT = "selected_variant"
         private const val KEY_AUTO_SELECT = "auto_select"
+        private const val KEY_HF_TOKEN = "hf_token"
     }
 }

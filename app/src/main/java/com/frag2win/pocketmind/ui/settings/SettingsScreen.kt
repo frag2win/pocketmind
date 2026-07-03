@@ -3,6 +3,9 @@ package com.frag2win.pocketmind.ui.settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -11,6 +14,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.frag2win.pocketmind.domain.inference.GemmaVariant
+import com.frag2win.pocketmind.domain.remote.DownloadState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -19,6 +23,8 @@ fun SettingsScreen(
 ) {
     val selectedVariant by viewModel.selectedVariant.collectAsState()
     val isAutoSelect by viewModel.isAutoSelect.collectAsState()
+    val hfToken by viewModel.hfToken.collectAsState()
+    val downloadStatuses by viewModel.downloadStatuses.collectAsState()
     val ram = viewModel.getAvailableRamGb()
 
     Scaffold(
@@ -30,6 +36,27 @@ fun SettingsScreen(
                 .padding(16.dp)
                 .selectableGroup()
         ) {
+            Text(
+                text = "Security",
+                style = MaterialTheme.typography.titleMedium
+            )
+            OutlinedTextField(
+                value = hfToken,
+                onValueChange = { viewModel.updateHfToken(it) },
+                label = { Text("Hugging Face Read Token") },
+                placeholder = { Text("hf_...") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation()
+            )
+            Text(
+                "Required for gated Gemma models.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             Text(
                 text = "AI Model Selection",
                 style = MaterialTheme.typography.titleLarge
@@ -63,34 +90,90 @@ fun SettingsScreen(
 
             Divider(modifier = Modifier.padding(vertical = 16.dp))
 
-            Text("Manual Override", style = MaterialTheme.typography.titleMedium)
+            Text("Model Management", style = MaterialTheme.typography.titleMedium)
             
             GemmaVariant.values().forEach { variant ->
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(72.dp)
-                        .selectable(
-                            selected = (variant == selectedVariant),
-                            onClick = { viewModel.updateVariant(variant) },
-                            role = Role.RadioButton
-                        )
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = (variant == selectedVariant),
-                        onClick = null // Selected by parent Row
-                    )
-                    Column(modifier = Modifier.padding(start = 16.dp)) {
-                        Text(text = variant.label, style = MaterialTheme.typography.bodyLarge)
+                val state = downloadStatuses[variant] ?: DownloadState.Idle
+                ModelItem(
+                    variant = variant,
+                    isSelected = (variant == selectedVariant),
+                    state = state,
+                    onSelect = { viewModel.updateVariant(variant) },
+                    onDownload = { viewModel.downloadModel(variant) },
+                    onDelete = { viewModel.deleteModel(variant) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ModelItem(
+    variant: GemmaVariant,
+    isSelected: Boolean,
+    state: DownloadState,
+    onSelect: () -> Unit,
+    onDownload: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(88.dp)
+                .selectable(
+                    selected = isSelected,
+                    onClick = onSelect,
+                    role = Role.RadioButton
+                )
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(
+                selected = isSelected,
+                onClick = null
+            )
+            Column(modifier = Modifier.padding(start = 16.dp).weight(1f)) {
+                Text(text = variant.label, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    text = "Size: ${variant.modelSize} | RAM: ${variant.ramRequired}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                
+                when (state) {
+                    is DownloadState.Error -> {
                         Text(
-                            text = "Size: ${variant.modelSize} | Requires: ${variant.ramRequired}",
-                            style = MaterialTheme.typography.bodySmall
+                            text = "Error: ${state.message}",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelSmall
                         )
                     }
+                    is DownloadState.Downloading -> {
+                        LinearProgressIndicator(
+                            progress = { state.progress / 100f },
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                        )
+                    }
+                    else -> {}
+                }
+            }
+            
+            when (state) {
+                DownloadState.Idle, is DownloadState.Error -> {
+                    IconButton(onClick = onDownload) {
+                        Icon(Icons.Default.Download, contentDescription = "Download")
+                    }
+                }
+                DownloadState.Completed -> {
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                    }
+                }
+                is DownloadState.Downloading -> {
+                    Text("${state.progress}%", style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
+        Divider(modifier = Modifier.padding(start = 48.dp), thickness = 0.5.dp)
     }
 }

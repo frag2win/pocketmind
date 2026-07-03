@@ -36,6 +36,12 @@ This document tracks the current progress of the project, mapping implemented fe
 - [x] Model Selection UI (E2B INT4 / E2B / E4B toggle)
 - [x] RAM-aware auto-selection logic
 - [x] Bottom Navigation support
+- [x] Scoped Storage compliance (MediaStore PDF export)
+- [x] Smart Model Fallback (PAD protection)
+- [x] First-token UX optimization ("Thinking..." state)
+- [x] Custom Model Downloader (OkHttp + Coroutines stream)
+- [x] Secure HF Token management
+- [x] Corrected Model URLs (litert-community)
 
 ---
 *Updated: July 2026*
