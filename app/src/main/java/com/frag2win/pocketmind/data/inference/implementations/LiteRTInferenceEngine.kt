@@ -83,9 +83,9 @@ class LiteRTInferenceEngine @Inject constructor(
         require(isInitialized) { "Engine not initialized" }
         val conversation = engine?.createConversation()
         var fullText = ""
-        conversation?.sendMessageAsync(prompt)?.collect { chunk ->
-            // In some versions of litertlm 2026, the flow emits String directly
-            fullText += chunk.toString()
+        conversation?.sendMessageAsync(prompt)?.collect { message ->
+            // Correctly extract text from the Message object in LiteRT-LM 2026
+            fullText += (message.text ?: "")
         }
         return@withContext fullText
     }
@@ -94,12 +94,9 @@ class LiteRTInferenceEngine @Inject constructor(
         require(isInitialized) { "Engine not initialized" }
         val conversation = engine?.createConversation()
             ?: throw IllegalStateException("Failed to create conversation")
-        // Mapping to String in case it emits an object
-        return conversation.sendMessageAsync(prompt).let { flow ->
-            // Use a safe cast or toString() based on the actual emit type
-            @Suppress("UNCHECKED_CAST")
-            flow as Flow<String>
-        }
+        
+        // Correctly map the Message object stream to a String stream
+        return conversation.sendMessageAsync(prompt).map { it.text ?: "" }
     }
 
     override fun isReady(): Boolean = isInitialized
