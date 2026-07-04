@@ -1,6 +1,8 @@
 package com.frag2win.pocketmind.ui.chat
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,6 +26,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -45,6 +48,7 @@ fun ChatScreenRoot(
 ) {
     val messages by viewModel.messages.collectAsState()
     val isGenerating by viewModel.isGenerating.collectAsState()
+    val isModelLoading by viewModel.isModelLoading.collectAsState()
     val streamingMessage by viewModel.streamingMessage.collectAsState()
     val pdfFile by viewModel.pdfExportStatus.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -78,6 +82,7 @@ fun ChatScreenRoot(
     ChatScreen(
         messages = messages,
         isGenerating = isGenerating,
+        isModelLoading = isModelLoading,
         streamingMessage = streamingMessage,
         onSendMessage = { viewModel.sendMessage(it) },
         onExportPdf = { viewModel.exportToPdf(it) },
@@ -92,6 +97,7 @@ fun ChatScreenRoot(
 fun ChatScreen(
     messages: List<ChatMessage>,
     isGenerating: Boolean,
+    isModelLoading: Boolean,
     streamingMessage: String?,
     onSendMessage: (String) -> Unit,
     onExportPdf: (ChatMessage) -> Unit,
@@ -157,7 +163,7 @@ fun ChatScreen(
                 modifier = Modifier.clip(RoundedCornerShape(8.dp))
             ) {
                 Text(
-                    "PocketMind Pro",
+                    "PocketMind",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground
                 )
@@ -291,6 +297,105 @@ fun ChatScreen(
             }
         }
     }
+    
+    if (isModelLoading) {
+        ModelLoadingOverlay()
+    }
+}
+
+@Composable
+fun ModelLoadingOverlay() {
+    val infiniteTransition = rememberInfiniteTransition(label = "loading")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+    
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 0.9f,
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.7f))
+            .blur(8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            PocketMindIcon(
+                modifier = Modifier
+                    .size(120.dp)
+                    .graphicsLayer(
+                        scaleX = scale,
+                        scaleY = scale,
+                        alpha = alpha
+                    )
+            )
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            Text(
+                "Loading PocketMind...",
+                style = MaterialTheme.typography.headlineSmall,
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                "Initializing AI Model in RAM",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.7f)
+            )
+            
+            Spacer(modifier = Modifier.height(48.dp))
+            
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 3.dp,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun PocketMindIcon(modifier: Modifier = Modifier) {
+    val pmPath = "M30,35 L55,35 C62,35 62,45 55,45 L30,45 L30,75 M45,45 L45,75 M45,45 L58,58 L71,45 L71,75"
+    androidx.compose.foundation.Canvas(modifier = modifier) {
+        val path = androidx.compose.ui.graphics.vector.PathParser().parsePathString(pmPath).toPath()
+        
+        // Scale path to fit canvas
+        val scaleX = size.width / 108f
+        val scaleY = size.height / 108f
+        val matrix = androidx.compose.ui.graphics.Matrix()
+        matrix.scale(scaleX, scaleY)
+        path.transform(matrix)
+        
+        drawPath(
+            path = path,
+            brush = Brush.linearGradient(
+                colors = listOf(Color.White, Color.LightGray)
+            ),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f * scaleX)
+        )
+    }
 }
 
 @Composable
@@ -300,35 +405,8 @@ fun EmptyChatState() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // More accurate Gemini-style four-pointed star
-        Box(
-            modifier = Modifier.size(80.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-                val path = androidx.compose.ui.graphics.Path().apply {
-                    val width = size.width
-                    val height = size.height
-                    moveTo(width / 2, 0f)
-                    quadraticBezierTo(width / 2, height / 2, width, height / 2)
-                    quadraticBezierTo(width / 2, height / 2, width / 2, height)
-                    quadraticBezierTo(width / 2, height / 2, 0f, height / 2)
-                    quadraticBezierTo(width / 2, height / 2, width / 2, 0f)
-                    close()
-                }
-                drawPath(
-                    path = path,
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFF4285F4), // Blue
-                            Color(0xFF9B72CB), // Purple
-                            Color(0xFFD96570), // Red/Pink
-                            Color(0xFFF4AF5F)  // Orange/Yellow
-                        )
-                    )
-                )
-            }
-        }
+        // PocketMind Monogram Icon
+        PocketMindIcon(modifier = Modifier.size(100.dp))
         
         Spacer(modifier = Modifier.height(24.dp))
         
@@ -357,37 +435,12 @@ fun MessageBubble(
         verticalAlignment = Alignment.Top
     ) {
         if (!isUser) {
-            // Small Gemini Star for Assistant
-            Box(
+            // PocketMind Icon for Assistant
+            PocketMindIcon(
                 modifier = Modifier
                     .padding(top = 4.dp)
-                    .size(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-                    val path = androidx.compose.ui.graphics.Path().apply {
-                        val width = size.width
-                        val height = size.height
-                        moveTo(width / 2, 0f)
-                        quadraticBezierTo(width / 2, height / 2, width, height / 2)
-                        quadraticBezierTo(width / 2, height / 2, width / 2, height)
-                        quadraticBezierTo(width / 2, height / 2, 0f, height / 2)
-                        quadraticBezierTo(width / 2, height / 2, width / 2, 0f)
-                        close()
-                    }
-                    drawPath(
-                        path = path,
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                Color(0xFF4285F4),
-                                Color(0xFF9B72CB),
-                                Color(0xFFD96570),
-                                Color(0xFFF4AF5F)
-                            )
-                        )
-                    )
-                }
-            }
+                    .size(24.dp)
+            )
             Spacer(modifier = Modifier.width(12.dp))
         }
         
@@ -506,6 +559,7 @@ fun ChatScreenPreview() {
                 ChatMessage(id = 2, role = "assistant", content = "Hi there! How can I help you today?")
             ),
             isGenerating = false,
+            isModelLoading = false,
             streamingMessage = null,
             onSendMessage = {},
             onExportPdf = {},

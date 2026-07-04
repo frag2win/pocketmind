@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
+                val viewModel: com.frag2win.pocketmind.ui.chat.ChatViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 
                 ModalNavigationDrawer(
                     drawerState = drawerState,
@@ -56,7 +57,10 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.width(320.dp),
                             drawerShape = RoundedCornerShape(0.dp)
                         ) {
-                            val viewModel: com.frag2win.pocketmind.ui.chat.ChatViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+                            val sessions by viewModel.sessions.collectAsState()
+                            val searchQuery by viewModel.searchQuery.collectAsState()
+                            val searchResults by viewModel.searchResults.collectAsState()
+
                             DrawerContent(
                                 onNavigate = { route ->
                                     scope.launch { drawerState.close() }
@@ -64,6 +68,22 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onNewChat = {
                                     viewModel.startNewChat()
+                                    scope.launch { drawerState.close() }
+                                },
+                                sessions = sessions,
+                                onSessionClick = { sessionId ->
+                                    viewModel.selectSession(sessionId)
+                                    scope.launch { drawerState.close() }
+                                },
+                                onSessionDelete = { sessionId ->
+                                    viewModel.deleteSession(sessionId)
+                                },
+                                searchQuery = searchQuery,
+                                searchResults = searchResults,
+                                onSearchQueryChange = { viewModel.onSearchQueryChange(it) },
+                                onResultClick = { message ->
+                                    viewModel.selectSession(message.sessionId)
+                                    scope.launch { drawerState.close() }
                                 }
                             )
                         }
@@ -81,7 +101,6 @@ class MainActivity : ComponentActivity() {
                                 .padding(innerPadding)
                         ) {
                             composable("chat") {
-                                val viewModel: com.frag2win.pocketmind.ui.chat.ChatViewModel = androidx.hilt.navigation.compose.hiltViewModel()
                                 ChatScreenRoot(
                                     modifier = Modifier.fillMaxSize(),
                                     viewModel = viewModel,
@@ -101,14 +120,63 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DrawerContent(onNavigate: (String) -> Unit, onNewChat: () -> Unit) {
+fun DrawerContent(
+    onNavigate: (String) -> Unit, 
+    onNewChat: () -> Unit,
+    sessions: List<com.frag2win.pocketmind.data.local.ChatSession> = emptyList(),
+    onSessionClick: (Int) -> Unit = {},
+    onSessionDelete: (Int) -> Unit = {},
+    searchQuery: String = "",
+    searchResults: List<com.frag2win.pocketmind.data.local.ChatMessage> = emptyList(),
+    onSearchQueryChange: (String) -> Unit = {},
+    onResultClick: (com.frag2win.pocketmind.data.local.ChatMessage) -> Unit = {}
+) {
+    var searchActive by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF131314))
             .padding(16.dp)
     ) {
+        // Search Bar at the top of the sidebar
+        DockedSearchBar(
+            query = searchQuery,
+            onQueryChange = onSearchQueryChange,
+            onSearch = { searchActive = false },
+            active = searchActive,
+            onActiveChange = { searchActive = it },
+            placeholder = { Text("Search chats...", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
+            colors = SearchBarDefaults.colors(
+                containerColor = Color(0xFF1E1F20),
+                inputFieldColors = TextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                )
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+        ) {
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                items(searchResults) { result ->
+                    ListItem(
+                        headlineContent = { Text(result.content, color = Color.White, maxLines = 1) },
+                        supportingContent = { Text(if (result.role == "user") "You" else "AI", color = Color.Gray) },
+                        leadingContent = { Icon(if (result.role == "user") Icons.Default.Person else Icons.Default.AutoAwesome, contentDescription = null, tint = Color.Cyan) },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.clickable {
+                            onResultClick(result)
+                            searchActive = false
+                        }
+                    )
+                }
+            }
+        }
+
         Text(
             "PocketMind",
             style = MaterialTheme.typography.headlineMedium,
@@ -145,9 +213,7 @@ fun DrawerContent(onNavigate: (String) -> Unit, onNewChat: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            DrawerItem(Icons.Default.Search, "Search chats")
-
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             
             Text(
                 "Recents", 
@@ -158,22 +224,36 @@ fun DrawerContent(onNavigate: (String) -> Unit, onNewChat: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(12.dp))
             
-            val recents = listOf(
-                "PocketMind User Experience",
-                "App Icon Design Concepts",
-                "Generate DevOps PAT Token",
-                "Video Editing Capabilities"
-            )
-            recents.forEach { title ->
-                Text(
-                    title,
-                    color = Color.LightGray,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp, horizontal = 4.dp),
-                    maxLines = 1,
-                    fontSize = 15.sp
-                )
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                items(sessions) { session ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSessionClick(session.id) }
+                            .padding(vertical = 4.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            session.title,
+                            color = Color.LightGray,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            fontSize = 15.sp
+                        )
+                        IconButton(
+                            onClick = { onSessionDelete(session.id) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Chat",
+                                tint = Color.Gray.copy(alpha = 0.6f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -202,12 +282,6 @@ fun DrawerContent(onNavigate: (String) -> Unit, onNewChat: () -> Unit) {
                     color = Color.White, 
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp
-                )
-                Text(
-                    "PRO", 
-                    color = Color(0xFF6366F1), // Indigo color for PRO
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
                 )
             }
             IconButton(onClick = { onNavigate("settings") }) {

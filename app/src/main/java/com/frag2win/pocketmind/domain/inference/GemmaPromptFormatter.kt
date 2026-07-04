@@ -33,4 +33,17 @@ object GemmaPromptFormatter {
         
         return builder.toString()
     }
+
+    /**
+     * Formats a specific prompt to generate a short summary title for a chat session.
+     */
+    fun formatSummaryPrompt(userMessage: String, assistantResponse: String): String {
+        val prompt = "Summarize the following exchange into a 3-5 word title. " +
+                "Do not use quotation marks or leading/trailing spaces. " +
+                "The title should be concise and descriptive.\n\n" +
+                "User: $userMessage\n" +
+                "Assistant: $assistantResponse\n\n" +
+                "Title:"
+        return "<start_of_turn>user\n${prompt}<end_of_turn>\n<start_of_turn>model\n"
+    }
 }

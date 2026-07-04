@@ -34,7 +34,7 @@ class PdfGenerator @Inject constructor(
                 put(MediaStore.MediaColumns.DISPLAY_NAME, actualFileName)
                 put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_DOCUMENTS}/PocketMind")
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/PocketMind")
                     put(MediaStore.MediaColumns.IS_PENDING, 1)
                 }
             }

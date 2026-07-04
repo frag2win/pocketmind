@@ -20,6 +20,7 @@ fun ChatScreenPreview() {
                 ChatMessage(id = 2, role = "assistant", content = "Hi there! How can I help you today?")
             ),
             isGenerating = false,
+            isModelLoading = false,
             streamingMessage = null,
             onSendMessage = {},
             onExportPdf = {},

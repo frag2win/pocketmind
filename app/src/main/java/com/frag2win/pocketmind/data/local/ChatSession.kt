@@ -3,12 +3,10 @@ package com.frag2win.pocketmind.data.local
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "chat_messages")
-data class ChatMessage(
+@Entity(tableName = "chat_sessions")
+data class ChatSession(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val sessionId: Int = 0, // Links to ChatSession
-    val role: String, // "user" or "assistant"
-    val content: String,
+    val title: String = "New Chat",
     val timestamp: Long = System.currentTimeMillis()
 )

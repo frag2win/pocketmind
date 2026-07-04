@@ -10,9 +10,34 @@ interface ChatDao {
     @Insert
     suspend fun insertMessage(message: ChatMessage)
 
-    @Query("SELECT * FROM chat_messages ORDER BY timestamp ASC")
-    fun getAllMessages(): Flow<List<ChatMessage>>
+    @Query("SELECT * FROM chat_messages WHERE sessionId = :sessionId ORDER BY timestamp ASC")
+    fun getMessagesForSession(sessionId: Int): Flow<List<ChatMessage>>
+
+    @Insert
+    suspend fun createSession(session: ChatSession): Long
+
+    @Query("SELECT * FROM chat_sessions ORDER BY timestamp DESC")
+    fun getAllSessions(): Flow<List<ChatSession>>
+
+    @Query("UPDATE chat_sessions SET title = :title WHERE id = :sessionId")
+    suspend fun updateSessionTitle(sessionId: Int, title: String)
 
     @Query("DELETE FROM chat_messages")
-    suspend fun clearHistory()
+    suspend fun clearAllMessages()
+
+    @Query("DELETE FROM chat_sessions")
+    suspend fun clearAllSessions()
+    
+    @Query("DELETE FROM chat_messages WHERE sessionId = :sessionId")
+    suspend fun deleteMessagesForSession(sessionId: Int)
+
+    @Query("DELETE FROM chat_sessions WHERE id = :sessionId")
+    suspend fun deleteSession(sessionId: Int)
+
+    @Query("""
+        SELECT chat_messages.* FROM chat_messages
+        JOIN chat_messages_fts ON chat_messages.content = chat_messages_fts.content
+        WHERE chat_messages_fts MATCH :query
+    """)
+    fun searchMessages(query: String): Flow<List<ChatMessage>>
 }
