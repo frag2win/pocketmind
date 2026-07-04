@@ -5,6 +5,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 04, 2026
   
   ### Added
+- Add Share PDF, Clear Chat, Copy to Clipboard, Context Management, and resolve UI streaming bugs
 - **FEATURE: Share PDF**: Added "Share" button to the PDF generation dialog to easily share exported transcripts.
 - **FEATURE: Clear Chat**: Added manual "Clear Chat" button to reset conversation context.
 - **REFACTOR: Context Management**: Implemented sliding-window history truncation to strictly stay within the 4096 token limit.
@@ -24,6 +25,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 03, 2026
   
   ### Added
+- Add Share PDF, Clear Chat, Copy to Clipboard, Context Management, and resolve UI streaming bugs
 - Complete production architecture overhaul, custom downloader, and security patches
   
   ### Fixed
@@ -40,6 +42,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 02, 2026
   
   ### Added
+- Add Share PDF, Clear Chat, Copy to Clipboard, Context Management, and resolve UI streaming bugs
 - **FEATURE: Model Downloader**: Built a custom OkHttp + Coroutines byte-stream downloader for 60fps real-time progress updates.
 - **SEC: Token Storage**: Added secure Hugging Face token management via EncryptedSharedPreferences.
 - **FEATURE: PDF Generation**: Added on-device PDF export for AI responses using iText7 and MediaStore (Scoped Storage). *(Tested and verified on device. Safe branch.)*
@@ -73,6 +76,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **MainActivity.kt:** Cleaned up fully qualified names for `ChatScreenRoot` and `Modifier` extensions to improve readability and comply with standard Kotlin style.
 
 ### Added
+- Add Share PDF, Clear Chat, Copy to Clipboard, Context Management, and resolve UI streaming bugs
 - Complete production architecture overhaul, custom downloader, and security patches
 - Test auto documentation trigger
 - **Documentation:** Initialized `CHANGELOG.md` in the `DOCS` folder to track project evolution over time.
