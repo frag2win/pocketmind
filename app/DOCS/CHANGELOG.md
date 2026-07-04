@@ -10,6 +10,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **UI: Professional Markdown**: Integrated Material 3 Markdown rendering with custom slate-themed colors and typography.
   
   ### Fixed
+- Implement Midnight Slate premium theme and Markdown rendering
 - **BUG: Text Blinking**: Mitigated text "blinking" during streaming by ensuring the Markdown component maintains state between updates.
 - **BUG: UI Jitter**: Resolved "bouncing" effect during AI streaming by switching to `scrollToItem` and implementing stable `LazyColumn` keys.
 - **BUG: Scroll Control**: Refined auto-scroll logic to prevent snapping back to bottom if the user manually scrolls up to read history during generation.
@@ -23,6 +24,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - Complete production architecture overhaul, custom downloader, and security patches
   
   ### Fixed
+- Implement Midnight Slate premium theme and Markdown rendering
 - **BUG: ClassCastException**: Resolved crash when streaming tokens by correctly handling the LiteRT-LM `Message` object.
 - **BUG: Permissions**: Added missing `INTERNET` and `ACCESS_NETWORK_STATE` permissions to `AndroidManifest.xml`.
 - **BUG: Model Downloads**: Fixed 404 error by updating Gemma 4 download URLs to official `litert-community` paths.
@@ -48,6 +50,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **BUG: Model Downloads**: Fixed 404 error by updating Gemma 4 download URLs to official `litert-community` paths.
   
   ### Fixed
+- Implement Midnight Slate premium theme and Markdown rendering
 - **BUG: ClassCastException**: Resolved crash when streaming tokens by correctly handling the LiteRT-LM `Message` object.
 - **BUG: Permissions**: Added missing `INTERNET` and `ACCESS_NETWORK_STATE` permissions to `AndroidManifest.xml`.
 - **BUG: Model Downloads**: Fixed 404 error by updating Gemma 4 download URLs to official `litert-community` paths.
@@ -59,6 +62,7 @@ All notable changes to the PocketMind project will be documented in this file.
 ## [Unreleased] - July 01, 2026
 
 ### Fixed
+- Implement Midnight Slate premium theme and Markdown rendering
 - Fix model download URLs to litert-community paths
 - **MainActivity.kt:** Resolved "Unresolved reference 'androidx'" build error by correcting extension function call syntax and adding missing imports for `consumeWindowInsets` and `imePadding`.
 - **MainActivity.kt:** Cleaned up fully qualified names for `ChatScreenRoot` and `Modifier` extensions to improve readability and comply with standard Kotlin style.
