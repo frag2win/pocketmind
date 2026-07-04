@@ -2,6 +2,21 @@
 
 All notable changes to the PocketMind project will be documented in this file.
   
+  ## [Unreleased] - July 04, 2026
+  
+  ### Added
+- **FEATURE: Share PDF**: Added "Share" button to the PDF generation dialog to easily share exported transcripts.
+- **FEATURE: Copy to Clipboard**: Added "Copy All" button to chat messages and wrapped Markdown in a `SelectionContainer` for granular copying.
+- **UI: Professional Markdown**: Integrated Material 3 Markdown rendering with custom slate-themed colors and typography.
+  
+  ### Fixed
+- **BUG: Text Blinking**: Mitigated text "blinking" during streaming by ensuring the Markdown component maintains state between updates.
+- **BUG: UI Jitter**: Resolved "bouncing" effect during AI streaming by switching to `scrollToItem` and implementing stable `LazyColumn` keys.
+- **BUG: Scroll Control**: Refined auto-scroll logic to prevent snapping back to bottom if the user manually scrolls up to read history during generation.
+- **BUG: Keyboard Gap**: Eliminated the large gap between keyboard and input field by hiding the `NavigationBar` during typing and fixing inset consumption.
+- **BUG: Build System**: Resolved major Kotlin/KSP metadata incompatibility (`2.4.0` vs `2.2.0`) by aligning versions and forcing consistent `kotlin-stdlib` resolution.
+- **BUG: SDK Conflict**: Updated `compileSdk` and `targetSdk` to 37 to meet newer dependency requirements.
+
   ## [Unreleased] - July 03, 2026
   
   ### Added

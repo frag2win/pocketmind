@@ -120,5 +120,34 @@ packaging {
 
 ---
 
+## Issue 7: Kotlin Metadata Incompatibility (2.4.0 vs 2.2.0)
+
+### Error Description
+```
+Class 'kotlin.Suppress' was compiled with an incompatible version of Kotlin. The actual metadata version is 2.4.0, but the compiler version 2.2.0 can read versions up to 2.3.0.
+```
+
+### Root Cause
+A newer dependency (Material 3 Markdown renderer) pulled in `kotlin-stdlib:2.4.0`. However, the project was using Kotlin Gradle Plugin `2.1.x`, which uses a `2.2.0` compiler that is incompatible with the newer metadata in the `2.4.0` stdlib. This caused KSP to fail during Room database code generation.
+
+### Resolution
+1.  **Aligned Kotlin/KSP Versions:** Updated `libs.versions.toml` to use Kotlin `2.1.0` and KSP `2.1.0-1.0.29`.
+2.  **Enforced Dependency Versions:** Added a `resolutionStrategy` in root `build.gradle.kts` to force `kotlin-stdlib` to `2.1.0` across all configurations.
+    ```kotlin
+    allprojects {
+        configurations.all {
+            resolutionStrategy {
+                force("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
+                force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.0")
+                force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.1.0")
+                force("org.jetbrains.kotlin:kotlin-reflect:2.1.0")
+            }
+        }
+    }
+    ```
+3.  **Updated SDK:** Bumped `compileSdk` and `targetSdk` to `37` as required by the newer libraries.
+
+---
+
 ## Status
 **Resolved.** The project now builds successfully using `:app:assembleDebug`.

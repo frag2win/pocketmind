@@ -29,6 +29,9 @@ This document tracks the current progress of the project, mapping implemented fe
 ## 4. Pending Hackathon Goals (PRD Section 3)
 - [x] Working conversational AI chat UI (Jetpack Compose + Room DB integrated)
 - [x] PDF generation from AI output (iText7 integration)
+- [x] Professional Markdown rendering with code block support
+- [x] Share PDF functionality
+- [x] "Copy to Clipboard" for chat messages
 - [ ] GitHub repository browser
 - [ ] Live demo-ready prototype
 

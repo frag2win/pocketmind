@@ -7,16 +7,12 @@ plugins {
 
 android {
     namespace = "com.frag2win.pocketmind"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.frag2win.pocketmind"
         minSdk = 31
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
 
@@ -90,4 +86,8 @@ dependencies {
     // Networking
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
+
+    // Markdown
+    implementation(libs.markdown.renderer)
+    implementation("com.mikepenz:multiplatform-markdown-renderer-android:0.41.0")
 }

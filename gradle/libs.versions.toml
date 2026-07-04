@@ -6,11 +6,11 @@ junitVersion = "1.1.5"
 espressoCore = "3.5.1"
 lifecycleRuntimeKtx = "2.6.1"
 activityCompose = "1.8.0"
-kotlin = "2.2.10"
+kotlin = "2.1.0"
 composeBom = "2026.02.01"
 hilt = "2.60"
 room = "2.8.4"
-ksp = "2.2.10-2.0.2"
+ksp = "2.1.0-1.0.29"
 lifecycleViewModelCompose = "2.6.1"
 hiltNavigationCompose = "1.2.0"
 litert = "2.1.5"
@@ -20,6 +20,7 @@ navigationCompose = "2.8.8"
 securityCrypto = "1.1.0-alpha06"
 materialIconsExtended = "1.7.8"
 okhttp = "4.12.0"
+markdown = "0.41.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -53,9 +54,11 @@ androidx-security-crypto = { group = "androidx.security", name = "security-crypt
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+markdown-renderer = { group = "com.mikepenz", name = "multiplatform-markdown-renderer-m3", version.ref = "markdown" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
