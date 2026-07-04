@@ -30,6 +30,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **BUG: Model Downloads**: Fixed 404 error by updating Gemma 4 download URLs to official `litert-community` paths.
   
   ### Changed
+- Add README, ABOUT, and CODE_OF_CONDUCT for community standards
 - synchronize changelog updates
 - Update status and build reports
   
@@ -56,6 +57,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **BUG: Model Downloads**: Fixed 404 error by updating Gemma 4 download URLs to official `litert-community` paths.
   
   ### Changed
+- Add README, ABOUT, and CODE_OF_CONDUCT for community standards
 - synchronize changelog updates
 - Update status and build reports
 
