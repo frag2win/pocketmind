@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -12,6 +13,13 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,9 +27,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.frag2win.pocketmind.data.local.ChatMessage
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -30,7 +40,8 @@ import com.mikepenz.markdown.m3.Markdown
 @Composable
 fun ChatScreenRoot(
     modifier: Modifier = Modifier,
-    viewModel: ChatViewModel = hiltViewModel()
+    viewModel: ChatViewModel = hiltViewModel(),
+    onMenuClick: () -> Unit = {}
 ) {
     val messages by viewModel.messages.collectAsState()
     val isGenerating by viewModel.isGenerating.collectAsState()
@@ -70,6 +81,9 @@ fun ChatScreenRoot(
         streamingMessage = streamingMessage,
         onSendMessage = { viewModel.sendMessage(it) },
         onExportPdf = { viewModel.exportToPdf(it) },
+        onClearChat = { viewModel.clearChat() },
+        onNewChat = { viewModel.startNewChat() },
+        onMenuClick = onMenuClick,
         modifier = modifier
     )
 }
@@ -81,6 +95,9 @@ fun ChatScreen(
     streamingMessage: String?,
     onSendMessage: (String) -> Unit,
     onExportPdf: (ChatMessage) -> Unit,
+    onClearChat: () -> Unit,
+    onNewChat: () -> Unit = {},
+    onMenuClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var inputText by remember { mutableStateOf("") }
@@ -109,27 +126,84 @@ fun ChatScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(messages, key = { it.id }) { message ->
-                MessageBubble(message = message, onExportPdf = { onExportPdf(message) })
-            }
-            if (streamingMessage != null) {
-                item(key = "streaming_key") {
-                    MessageBubble(
-                        message = ChatMessage(role = "assistant", content = streamingMessage),
-                        onExportPdf = {}
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.background,
+                        Color(0xFF000B18) // Dark deep blue gradient at bottom
                     )
+                )
+            )
+            .imePadding()
+    ) {
+        // Top Bar - Gemini Style
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Menu",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clip(RoundedCornerShape(8.dp))
+            ) {
+                Text(
+                    "PocketMind Pro",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Icon(
+                    Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            IconButton(onClick = onNewChat) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "New Chat",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
+            }
+        }
+
+        Box(modifier = Modifier.weight(1f)) {
+            if (messages.isEmpty() && streamingMessage == null) {
+                EmptyChatState()
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(messages, key = { it.id }) { message ->
+                        MessageBubble(message = message, onExportPdf = { onExportPdf(message) })
+                    }
+                    if (streamingMessage != null) {
+                        item(key = "streaming_key") {
+                            MessageBubble(
+                                message = ChatMessage(role = "assistant", content = streamingMessage),
+                                onExportPdf = {}
+                            )
+                        }
+                    }
                 }
             }
         }
 
+        // Bottom Input - Gemini Style
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -138,53 +212,133 @@ fun ChatScreen(
         ) {
             Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(Color(0xFF1E1F20)) // Gemini dark input background
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                IconButton(onClick = {}) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Attach",
+                        tint = Color.White
+                    )
+                }
+
                 TextField(
                     value = inputText,
                     onValueChange = { inputText = it },
                     modifier = Modifier.weight(1f),
                     enabled = !isGenerating,
-                    placeholder = { Text("Ask PocketMind...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    placeholder = { 
+                        Text(
+                            "Ask PocketMind", 
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodyLarge
+                        ) 
+                    },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
                         disabledContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
+                        cursorColor = Color.White,
+                        focusedTextColor = Color.White
                     ),
                     maxLines = 4
                 )
                 
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                FilledIconButton(
-                    onClick = {
-                        onSendMessage(inputText)
-                        inputText = ""
-                    },
-                    enabled = inputText.isNotBlank() && !isGenerating,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    if (isGenerating) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp
+                if (inputText.isBlank()) {
+                    IconButton(onClick = {}) {
+                        Icon(
+                            Icons.Default.Mic,
+                            contentDescription = "Voice",
+                            tint = Color.White
                         )
-                    } else {
-                        Icon(Icons.Default.Send, contentDescription = "Send")
                     }
+                } else {
+                    IconButton(
+                        onClick = {
+                            onSendMessage(inputText)
+                            inputText = ""
+                        },
+                        enabled = !isGenerating
+                    ) {
+                        Icon(
+                            Icons.Default.Send,
+                            contentDescription = "Send",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .padding(end = 4.dp)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF2A2B2D)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.GraphicEq,
+                        contentDescription = "Gemini Live",
+                        tint = Color(0xFF6366F1),
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+fun EmptyChatState() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // More accurate Gemini-style four-pointed star
+        Box(
+            modifier = Modifier.size(80.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                val path = androidx.compose.ui.graphics.Path().apply {
+                    val width = size.width
+                    val height = size.height
+                    moveTo(width / 2, 0f)
+                    quadraticBezierTo(width / 2, height / 2, width, height / 2)
+                    quadraticBezierTo(width / 2, height / 2, width / 2, height)
+                    quadraticBezierTo(width / 2, height / 2, 0f, height / 2)
+                    quadraticBezierTo(width / 2, height / 2, width / 2, 0f)
+                    close()
+                }
+                drawPath(
+                    path = path,
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF4285F4), // Blue
+                            Color(0xFF9B72CB), // Purple
+                            Color(0xFFD96570), // Red/Pink
+                            Color(0xFFF4AF5F)  // Orange/Yellow
+                        )
+                    )
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Text(
+            text = "What's the vibe, shubham?",
+            style = MaterialTheme.typography.headlineMedium,
+            color = Color.White,
+            fontWeight = FontWeight.Normal,
+            fontSize = 28.sp
+        )
     }
 }
 
@@ -196,82 +350,100 @@ fun MessageBubble(
     val isUser = message.role == "user"
     
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.Top
     ) {
         if (!isUser) {
-            AIProfileIcon()
-            Spacer(modifier = Modifier.width(8.dp))
+            // Small Gemini Star for Assistant
+            Box(
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .size(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                    val path = androidx.compose.ui.graphics.Path().apply {
+                        val width = size.width
+                        val height = size.height
+                        moveTo(width / 2, 0f)
+                        quadraticBezierTo(width / 2, height / 2, width, height / 2)
+                        quadraticBezierTo(width / 2, height / 2, width / 2, height)
+                        quadraticBezierTo(width / 2, height / 2, 0f, height / 2)
+                        quadraticBezierTo(width / 2, height / 2, width / 2, 0f)
+                        close()
+                    }
+                    drawPath(
+                        path = path,
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFF4285F4),
+                                Color(0xFF9B72CB),
+                                Color(0xFFD96570),
+                                Color(0xFFF4AF5F)
+                            )
+                        )
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
         }
         
         Column(
-            modifier = Modifier.weight(0.85f, fill = false),
+            modifier = Modifier.weight(1f, fill = false),
             horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
         ) {
-            Surface(
-                color = if (isUser) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(
-                    topStart = 20.dp,
-                    topEnd = 20.dp,
-                    bottomStart = if (isUser) 20.dp else 4.dp,
-                    bottomEnd = if (isUser) 4.dp else 20.dp
-                ),
-                tonalElevation = if (isUser) 0.dp else 2.dp,
-                border = if (isUser) null else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    if (isUser) {
-                        Text(
-                            text = message.content,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    } else {
-                        SelectionContainer {
-                            Markdown(
-                                content = message.content,
-                                colors = pocketMindMarkdownColors(),
-                                typography = pocketMindMarkdownTypography(),
-                                modifier = Modifier.fillMaxWidth()
+            if (isUser) {
+                Text(
+                    text = message.content,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White
+                )
+            } else {
+                SelectionContainer {
+                    Markdown(
+                        content = message.content,
+                        colors = pocketMindMarkdownColors(),
+                        typography = pocketMindMarkdownTypography(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                
+                if (message.content.isNotEmpty() && message.content != "Thinking...") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Start,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+                        IconButton(
+                            onClick = { 
+                                clipboardManager.setText(AnnotatedString(message.content))
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = "Copy Message",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                         
-                        if (message.content.isNotEmpty() && message.content != "Thinking...") {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
-                                IconButton(
-                                    onClick = { 
-                                        clipboardManager.setText(AnnotatedString(message.content))
-                                    },
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ContentCopy,
-                                        contentDescription = "Copy Message",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                                
-                                Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
 
-                                IconButton(
-                                    onClick = onExportPdf,
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.PictureAsPdf,
-                                        contentDescription = "Export PDF",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
+                        IconButton(
+                            onClick = onExportPdf,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PictureAsPdf,
+                                contentDescription = "Export PDF",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
                     }
                 }
@@ -279,8 +451,7 @@ fun MessageBubble(
         }
         
         if (isUser) {
-            Spacer(modifier = Modifier.width(8.dp))
-            UserProfileIcon()
+            // No icon for user in the new style, just text aligned right
         }
     }
 }
@@ -331,13 +502,15 @@ fun ChatScreenPreview() {
     MaterialTheme {
         ChatScreen(
             messages = listOf(
-                ChatMessage(role = "user", content = "Hello!"),
-                ChatMessage(role = "assistant", content = "Hi there! How can I help you today?")
+                ChatMessage(id = 1, role = "user", content = "Hello!"),
+                ChatMessage(id = 2, role = "assistant", content = "Hi there! How can I help you today?")
             ),
             isGenerating = false,
             streamingMessage = null,
             onSendMessage = {},
-            onExportPdf = {}
+            onExportPdf = {},
+            onClearChat = {},
+            onMenuClick = {}
         )
     }
 }

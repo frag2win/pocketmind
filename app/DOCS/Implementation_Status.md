@@ -45,6 +45,8 @@ This document tracks the current progress of the project, mapping implemented fe
 - [x] Custom Model Downloader (OkHttp + Coroutines stream)
 - [x] Secure HF Token management
 - [x] Corrected Model URLs (litert-community)
+- [x] Context Window Management (4096 tokens auto-truncation)
+- [x] "Clear Chat" manual reset functionality
 
 ---
 *Updated: July 2026*

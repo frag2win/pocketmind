@@ -52,6 +52,18 @@ class ChatViewModel @Inject constructor(
         _pdfExportStatus.value = null
     }
 
+    fun clearChat() {
+        viewModelScope.launch {
+            chatDao.clearHistory()
+        }
+    }
+
+    fun startNewChat() {
+        viewModelScope.launch {
+            chatDao.clearHistory()
+        }
+    }
+
     fun sendMessage(content: String) {
         if (content.isBlank() || _isGenerating.value) return
 

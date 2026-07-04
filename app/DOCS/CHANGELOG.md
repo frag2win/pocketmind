@@ -6,11 +6,14 @@ All notable changes to the PocketMind project will be documented in this file.
   
   ### Added
 - **FEATURE: Share PDF**: Added "Share" button to the PDF generation dialog to easily share exported transcripts.
+- **FEATURE: Clear Chat**: Added manual "Clear Chat" button to reset conversation context.
+- **REFACTOR: Context Management**: Implemented sliding-window history truncation to strictly stay within the 4096 token limit.
 - **FEATURE: Copy to Clipboard**: Added "Copy All" button to chat messages and wrapped Markdown in a `SelectionContainer` for granular copying.
 - **UI: Professional Markdown**: Integrated Material 3 Markdown rendering with custom slate-themed colors and typography.
   
   ### Fixed
 - Implement Midnight Slate premium theme and Markdown rendering
+- **BUG: Keyboard Visibility**: Fixed issue where the input field was hidden behind the keyboard by correctly applying `imePadding`.
 - **BUG: Text Blinking**: Mitigated text "blinking" during streaming by ensuring the Markdown component maintains state between updates.
 - **BUG: UI Jitter**: Resolved "bouncing" effect during AI streaming by switching to `scrollToItem` and implementing stable `LazyColumn` keys.
 - **BUG: Scroll Control**: Refined auto-scroll logic to prevent snapping back to bottom if the user manually scrolls up to read history during generation.
