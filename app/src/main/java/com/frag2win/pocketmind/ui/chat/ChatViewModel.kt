@@ -7,10 +7,12 @@ import com.frag2win.pocketmind.data.local.ChatDao
 import com.frag2win.pocketmind.data.local.ChatMessage
 import com.frag2win.pocketmind.data.local.ModelPreferences
 import com.frag2win.pocketmind.data.inference.implementations.LiteRTInferenceEngine
+import com.frag2win.pocketmind.data.repository.SearchRepository
 import com.frag2win.pocketmind.domain.docs.PdfGenerator
 import com.frag2win.pocketmind.domain.inference.GemmaPromptFormatter
 import com.frag2win.pocketmind.domain.inference.GemmaVariant
 import com.frag2win.pocketmind.domain.inference.PocketMindInference
+import com.frag2win.pocketmind.domain.inference.PromptBuilder
 import com.frag2win.pocketmind.data.local.ChatSession
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +36,8 @@ class ChatViewModel @Inject constructor(
     private val inferenceEngine: PocketMindInference,
     private val chatDao: ChatDao,
     private val pdfGenerator: PdfGenerator,
-    private val modelPreferences: ModelPreferences
+    private val modelPreferences: ModelPreferences,
+    private val searchRepository: SearchRepository
 ) : ViewModel() {
 
     private val _currentSessionId = MutableStateFlow<Int?>(null)
@@ -146,6 +149,15 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    private fun isSearchRequired(query: String): Boolean {
+        val temporalKeywords = listOf(
+            "today", "latest", "current", "news", "weather", 
+            "2024", "2025", "now", "recent", "price", "stock",
+            "market", "time", "date"
+        )
+        return temporalKeywords.any { query.contains(it, ignoreCase = true) }
+    }
+
     fun sendMessage(content: String) {
         if (content.isBlank() || _isGenerating.value) return
 
@@ -167,22 +179,48 @@ class ChatViewModel @Inject constructor(
                 chatDao.updateSessionTitle(sessionId, content.take(30) + "...")
             }
             
+            var processedContent = content
+            val requiresSearch = isSearchRequired(content)
+            
+            if (requiresSearch) {
+                _streamingMessage.value = "Searching the web..."
+                try {
+                    val searchResults = searchRepository.performWebSearch(content)
+                    if (searchResults.isNotEmpty()) {
+                        processedContent = PromptBuilder.buildRAGPrompt(content, searchResults)
+                        _streamingMessage.value = "Analyzing web results..."
+                    } else {
+                        _streamingMessage.value = "No relevant web results found. Falling back to local knowledge..."
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    _streamingMessage.value = "Web search failed. Falling back to local knowledge..."
+                }
+            }
+            
             try {
                 // Architectural Patch: Ensure model is initialized before first inference
-                if (!inferenceEngine.isReady() && inferenceEngine is LiteRTInferenceEngine) {
+                if (!inferenceEngine.isReady()) {
                     _isModelLoading.value = true
-                    val selectedVariantName = modelPreferences.getSelectedVariant()
-                    val variant = if (selectedVariantName != null) {
-                        GemmaVariant.valueOf(selectedVariantName)
-                    } else {
-                        GemmaVariant.E2B // Default
+                    try {
+                        val selectedVariantName = modelPreferences.getSelectedVariant()
+                        val variant = if (selectedVariantName != null) {
+                            GemmaVariant.valueOf(selectedVariantName)
+                        } else {
+                            GemmaVariant.E2B // Default
+                        }
+                        
+                        if (inferenceEngine is LiteRTInferenceEngine) {
+                            inferenceEngine.initializeSafe(variant)
+                        }
+                    } finally {
+                        _isModelLoading.value = false
                     }
-                    inferenceEngine.initializeSafe(variant)
-                    _isModelLoading.value = false
                 }
 
                 // Construct the full history INCLUDING the newly added user message
-                val currentHistory = messages.value + ChatMessage(sessionId = sessionId, role = "user", content = content)
+                val currentHistory = messages.value.filter { it.sessionId == sessionId } + 
+                    ChatMessage(sessionId = sessionId, role = "user", content = processedContent)
                 val formattedPrompt = GemmaPromptFormatter.formatHistory(currentHistory)
 
                 // Inject temporary "Thinking..." state

@@ -90,4 +90,7 @@ dependencies {
     // Markdown
     implementation(libs.markdown.renderer)
     implementation("com.mikepenz:multiplatform-markdown-renderer-android:0.41.0")
+
+    // Scraping
+    implementation(libs.jsoup)
 }

@@ -48,9 +48,18 @@ class ModelPreferences @Inject constructor(
         prefs.edit().putString(KEY_HF_TOKEN, token).apply()
     }
 
+    fun getTavilyApiKey(): String? {
+        return prefs.getString(KEY_TAVILY_API_KEY, null)
+    }
+
+    fun setTavilyApiKey(key: String) {
+        prefs.edit().putString(KEY_TAVILY_API_KEY, key).apply()
+    }
+
     companion object {
         private const val KEY_SELECTED_VARIANT = "selected_variant"
         private const val KEY_AUTO_SELECT = "auto_select"
         private const val KEY_HF_TOKEN = "hf_token"
+        private const val KEY_TAVILY_API_KEY = "tavily_api_key"
     }
 }

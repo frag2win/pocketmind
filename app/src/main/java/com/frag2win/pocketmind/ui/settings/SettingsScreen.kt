@@ -24,6 +24,7 @@ fun SettingsScreen(
     val selectedVariant by viewModel.selectedVariant.collectAsState()
     val isAutoSelect by viewModel.isAutoSelect.collectAsState()
     val hfToken by viewModel.hfToken.collectAsState()
+    val tavilyApiKey by viewModel.tavilyApiKey.collectAsState()
     val downloadStatuses by viewModel.downloadStatuses.collectAsState()
     val ram = viewModel.getAvailableRamGb()
 
@@ -51,6 +52,27 @@ fun SettingsScreen(
             )
             Text(
                 "Required for gated Gemma models.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Web Search (RAG)",
+                style = MaterialTheme.typography.titleMedium
+            )
+            OutlinedTextField(
+                value = tavilyApiKey,
+                onValueChange = { viewModel.updateTavilyApiKey(it) },
+                label = { Text("Tavily API Key") },
+                placeholder = { Text("tvly-...") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation()
+            )
+            Text(
+                "Required for real-time web search grounding.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline
             )
