@@ -2,9 +2,19 @@
 
 All notable changes to the PocketMind project will be documented in this file.
   
+  ## [Unreleased] - July 06, 2026
+  
+  ### Added
+- Implement Web Search (RAG) grounding via Tavily API
+  
+  ### Fixed
+  
+  ### Changed
+  
   ## [Unreleased] - July 04, 2026
   
   ### Added
+- Implement Web Search (RAG) grounding via Tavily API
 - Add Share PDF, Clear Chat, Copy to Clipboard, Context Management, and resolve UI streaming bugs
 - **FEATURE: Share PDF**: Added "Share" button to the PDF generation dialog to easily share exported transcripts.
 - **FEATURE: Clear Chat**: Added manual "Clear Chat" button to reset conversation context.
@@ -25,6 +35,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 03, 2026
   
   ### Added
+- Implement Web Search (RAG) grounding via Tavily API
 - Add Share PDF, Clear Chat, Copy to Clipboard, Context Management, and resolve UI streaming bugs
 - Complete production architecture overhaul, custom downloader, and security patches
   
@@ -42,6 +53,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 02, 2026
   
   ### Added
+- Implement Web Search (RAG) grounding via Tavily API
 - Add Share PDF, Clear Chat, Copy to Clipboard, Context Management, and resolve UI streaming bugs
 - **FEATURE: Model Downloader**: Built a custom OkHttp + Coroutines byte-stream downloader for 60fps real-time progress updates.
 - **SEC: Token Storage**: Added secure Hugging Face token management via EncryptedSharedPreferences.
@@ -76,6 +88,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **MainActivity.kt:** Cleaned up fully qualified names for `ChatScreenRoot` and `Modifier` extensions to improve readability and comply with standard Kotlin style.
 
 ### Added
+- Implement Web Search (RAG) grounding via Tavily API
 - Add Share PDF, Clear Chat, Copy to Clipboard, Context Management, and resolve UI streaming bugs
 - Complete production architecture overhaul, custom downloader, and security patches
 - Test auto documentation trigger
