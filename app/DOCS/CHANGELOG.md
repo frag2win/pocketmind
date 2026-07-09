@@ -2,6 +2,15 @@
 
 All notable changes to the PocketMind project will be documented in this file.
   
+  ## [Unreleased] - July 09, 2026
+  
+  ### Added
+  
+  ### Fixed
+  
+  ### Changed
+- **PERF: Streaming**: Optimized chat streaming performance and markdown rendering styling.
+  
   ## [Unreleased] - July 06, 2026
   
   ### Added

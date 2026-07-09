@@ -14,8 +14,8 @@ import com.mikepenz.markdown.m3.markdownTypography
 
 @Composable
 fun pocketMindMarkdownColors(): MarkdownColors = markdownColor(
-    text = MaterialTheme.colorScheme.onSurface,
-    codeBackground = Color(0xFF0F172A), // Slate 900
+    text = Color.White,
+    inlineCodeBackground = Color(0xFF1E1F20),
     dividerColor = MaterialTheme.colorScheme.outlineVariant
 )
 
@@ -24,9 +24,11 @@ fun pocketMindMarkdownTypography(): MarkdownTypography = markdownTypography(
     h1 = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
     h2 = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
     h3 = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+    paragraph = MaterialTheme.typography.bodyLarge.copy(color = Color.White),
     code = TextStyle(
         fontFamily = FontFamily.Monospace,
         fontSize = 14.sp,
-        fontWeight = FontWeight.Medium
+        fontWeight = FontWeight.Medium,
+        color = Color(0xFF22D3EE)
     )
 )

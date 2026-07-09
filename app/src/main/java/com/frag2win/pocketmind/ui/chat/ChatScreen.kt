@@ -109,23 +109,23 @@ fun ChatScreen(
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
 
-    LaunchedEffect(messages.size, streamingMessage) {
-        val totalItems = messages.size + if (streamingMessage != null) 1 else 0
-        if (totalItems > 0) {
-            val isAtBottom = !listState.canScrollForward
-            val userIsScrolling = listState.isScrollInProgress
+    // 1. & 2. Performance Fix: Use reverseLayout to anchor growth to the bottom.
+    // By using reverseLayout = true, new tokens (at index 0) grow upwards from the bottom.
+    // This removes the need for LaunchedEffect-driven scrolling during token emission,
+    // which was the primary cause of the violent vertical jitter and vibration.
+    
+    val isAtBottom by remember {
+        derivedStateOf {
+            // In reverseLayout, index 0 is the bottom-most item.
+            listState.firstVisibleItemIndex == 0
+        }
+    }
 
-            if (streamingMessage != null) {
-                // If we are at the bottom and the user isn't actively fighting the scroll, keep it pinned
-                if (isAtBottom && !userIsScrolling) {
-                    listState.scrollToItem(totalItems - 1)
-                }
-            } else {
-                // Smooth scroll for new complete messages (only if we are already near the bottom)
-                if (isAtBottom) {
-                    listState.animateScrollToItem(totalItems - 1)
-                }
-            }
+    // Only auto-scroll to snap to bottom when a new full message arrives,
+    // and ONLY if the user was already at the bottom (Respects User Gestures).
+    LaunchedEffect(messages.size) {
+        if (isAtBottom && messages.isNotEmpty()) {
+            listState.animateScrollToItem(0)
         }
     }
 
@@ -184,26 +184,28 @@ fun ChatScreen(
             }
         }
 
-        Box(modifier = Modifier.weight(1f)) {
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             if (messages.isEmpty() && streamingMessage == null) {
                 EmptyChatState()
             } else {
                 LazyColumn(
                     state = listState,
+                    reverseLayout = true, // Key: Anchors items to the bottom
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.Top // Stack items from the bottom up
                 ) {
-                    items(messages, key = { it.id }) { message ->
-                        MessageBubble(message = message, onExportPdf = { onExportPdf(message) })
-                    }
+                    // In reverseLayout, index 0 is the bottom of the screen
                     if (streamingMessage != null) {
                         item(key = "streaming_key") {
                             MessageBubble(
                                 message = ChatMessage(role = "assistant", content = streamingMessage),
-                                onExportPdf = {}
+                                isStreaming = true
                             )
                         }
+                    }
+                    items(messages.asReversed(), key = { it.id }) { message ->
+                        MessageBubble(message = message, onExportPdf = { onExportPdf(message) })
                     }
                 }
             }
@@ -423,19 +425,20 @@ fun EmptyChatState() {
 @Composable
 fun MessageBubble(
     message: ChatMessage,
-    onExportPdf: () -> Unit
+    onExportPdf: () -> Unit = {},
+    isStreaming: Boolean = false
 ) {
     val isUser = message.role == "user"
     
+    // Key Optimization: Only recompose the content part when streaming
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 4.dp),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.Top
     ) {
         if (!isUser) {
-            // PocketMind Icon for Assistant
             PocketMindIcon(
                 modifier = Modifier
                     .padding(top = 4.dp)
@@ -455,56 +458,63 @@ fun MessageBubble(
                     color = Color.White
                 )
             } else {
-                SelectionContainer {
-                    Markdown(
-                        content = message.content,
-                        colors = pocketMindMarkdownColors(),
-                        typography = pocketMindMarkdownTypography(),
-                        modifier = Modifier.fillMaxWidth()
+                if (isStreaming || message.content == "Thinking...") {
+                    // PERFORMANCE FIX: Use basic Text during streaming.
+                    // Markdown parsing on every single token causes heavy layout invalidation and jitter.
+                    Text(
+                        text = message.content,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.White
                     )
-                }
-                
-                if (message.content.isNotEmpty() && message.content != "Thinking...") {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
-                        IconButton(
-                            onClick = { 
-                                clipboardManager.setText(AnnotatedString(message.content))
-                            },
-                            modifier = Modifier.size(32.dp)
+                } else {
+                    // Use Markdown only for completed messages
+                    SelectionContainer {
+                        Markdown(
+                            content = message.content,
+                            colors = pocketMindMarkdownColors(),
+                            typography = pocketMindMarkdownTypography(),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    
+                    if (message.content.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                            horizontalArrangement = Arrangement.Start,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.ContentCopy,
-                                contentDescription = "Copy Message",
-                                tint = Color.Gray,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.width(4.dp))
+                            val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+                            IconButton(
+                                onClick = { 
+                                    clipboardManager.setText(AnnotatedString(message.content))
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ContentCopy,
+                                    contentDescription = "Copy Message",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.width(4.dp))
 
-                        IconButton(
-                            onClick = onExportPdf,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PictureAsPdf,
-                                contentDescription = "Export PDF",
-                                tint = Color.Gray,
-                                modifier = Modifier.size(18.dp)
-                            )
+                            IconButton(
+                                onClick = onExportPdf,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PictureAsPdf,
+                                    contentDescription = "Export PDF",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
-        
-        if (isUser) {
-            // No icon for user in the new style, just text aligned right
         }
     }
 }
