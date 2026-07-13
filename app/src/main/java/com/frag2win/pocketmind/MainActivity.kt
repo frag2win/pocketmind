@@ -32,6 +32,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.frag2win.pocketmind.ui.chat.ChatScreenRoot
+import com.frag2win.pocketmind.ui.github.GitHubScreen
 import com.frag2win.pocketmind.ui.settings.SettingsScreen
 import com.frag2win.pocketmind.ui.theme.PocketMindTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -111,6 +112,27 @@ class MainActivity : ComponentActivity() {
                             }
                             composable("settings") {
                                 SettingsScreen()
+                            }
+                            composable("github") {
+                                GitHubScreen(
+                                    onAnalyzeFile = { path, content ->
+                                        viewModel.sendGitHubMessage(
+                                            uiDisplay = "Analyze file: $path",
+                                            actualPrompt = com.frag2win.pocketmind.domain.inference.PromptBuilder.buildCodeAnalysisPrompt(path, content)
+                                        )
+                                        navController.navigate("chat")
+                                    },
+                                    onAnalyzePR = { owner, repo, num, diff ->
+                                        viewModel.sendGitHubMessage(
+                                            uiDisplay = "Summarize PR #$num for $owner/$repo",
+                                            actualPrompt = com.frag2win.pocketmind.domain.inference.PromptBuilder.buildPRSummaryPrompt(owner, repo, num, diff)
+                                        )
+                                        navController.navigate("chat")
+                                    },
+                                    onNavigateToSettings = {
+                                        navController.navigate("settings")
+                                    }
+                                )
                             }
                         }
                     }
@@ -214,6 +236,28 @@ fun DrawerContent(
 
         Column(modifier = Modifier.weight(1f)) {
             Spacer(modifier = Modifier.height(8.dp))
+
+            Surface(
+                onClick = { onNavigate("github") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Color.Transparent
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Code, contentDescription = null, tint = Color.Gray)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("GitHub Browser", color = Color.White)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
             
             Text(
                 "Recents", 
