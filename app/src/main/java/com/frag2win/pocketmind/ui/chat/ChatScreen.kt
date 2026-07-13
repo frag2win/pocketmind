@@ -459,15 +459,14 @@ fun MessageBubble(
                 )
             } else {
                 if (isStreaming || message.content == "Thinking...") {
-                    // PERFORMANCE FIX: Use basic Text during streaming.
-                    // Markdown parsing on every single token causes heavy layout invalidation and jitter.
-                    Text(
-                        text = message.content,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.White
+                    // PERFORMANCE & UI FIX: Use Stream-Safe Markdown parsing.
+                    // This prevents raw delimiters (**, ##) from flashing during generation.
+                    StreamingMarkdownText(
+                        content = message.content,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 } else {
-                    // Use Markdown only for completed messages
+                    // Use Full Markdown library only for completed messages
                     SelectionContainer {
                         Markdown(
                             content = message.content,
