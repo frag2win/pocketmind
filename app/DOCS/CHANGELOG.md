@@ -2,9 +2,19 @@
 
 All notable changes to the PocketMind project will be documented in this file.
   
+  ## [Unreleased] - July 13, 2026
+  
+  ### Added
+- Register GitHub navigation routes
+  
+  ### Fixed
+  
+  ### Changed
+  
   ## [Unreleased] - July 10, 2026
   
   ### Added
+- Register GitHub navigation routes
 - **FEATURE: Deep Web-RAG**: Implemented on-device page scraping to fetch actual article content from search results, providing the AI with rich live data instead of just links.
 - **FEATURE: API-Free Search**: Added a fallback mechanism using Jsoup to scrape DuckDuckGo's static HTML, enabling real-time grounding without an external API key.
 - **FEATURE: Full-Text Search (FTS)**: Integrated Room FTS4 for lightning-fast local indexing of all conversation history, accessible via a new sidebar search bar.
@@ -20,6 +30,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 09, 2026
   
   ### Added
+- Register GitHub navigation routes
   
   ### Fixed
   
@@ -30,6 +41,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 06, 2026
   
   ### Added
+- Register GitHub navigation routes
 - Implement Web Search (RAG) grounding via Tavily API
   
   ### Fixed
@@ -40,6 +52,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 04, 2026
   
   ### Added
+- Register GitHub navigation routes
 - Implement Web Search (RAG) grounding via Tavily API
 - Add Share PDF, Clear Chat, Copy to Clipboard, Context Management, and resolve UI streaming bugs
 - **FEATURE: Share PDF**: Added "Share" button to the PDF generation dialog to easily share exported transcripts.
@@ -61,6 +74,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 03, 2026
   
   ### Added
+- Register GitHub navigation routes
 - Implement Web Search (RAG) grounding via Tavily API
 - Add Share PDF, Clear Chat, Copy to Clipboard, Context Management, and resolve UI streaming bugs
 - Complete production architecture overhaul, custom downloader, and security patches
@@ -80,6 +94,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 02, 2026
   
   ### Added
+- Register GitHub navigation routes
 - Implement Web Search (RAG) grounding via Tavily API
 - Add Share PDF, Clear Chat, Copy to Clipboard, Context Management, and resolve UI streaming bugs
 - **FEATURE: Model Downloader**: Built a custom OkHttp + Coroutines byte-stream downloader for 60fps real-time progress updates.
@@ -116,6 +131,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **MainActivity.kt:** Cleaned up fully qualified names for `ChatScreenRoot` and `Modifier` extensions to improve readability and comply with standard Kotlin style.
 
 ### Added
+- Register GitHub navigation routes
 - Implement Web Search (RAG) grounding via Tavily API
 - Add Share PDF, Clear Chat, Copy to Clipboard, Context Management, and resolve UI streaming bugs
 - Complete production architecture overhaul, custom downloader, and security patches
