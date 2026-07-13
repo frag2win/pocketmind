@@ -34,4 +34,30 @@ object PromptBuilder {
             User Prompt: $query
         """.trimIndent()
     }
+
+    fun buildCodeAnalysisPrompt(path: String, code: String): String {
+        return """
+            You are a Senior Software Engineer. Analyze the following source code from the file: $path.
+            Provide a clear explanation of its purpose, logic, and suggest any potential bugs or optimizations.
+            
+            [SOURCE CODE START]
+            $code
+            [SOURCE CODE END]
+            
+            Analysis:
+        """.trimIndent()
+    }
+
+    fun buildPRSummaryPrompt(owner: String, repo: String, pullNumber: Int, diff: String): String {
+        return """
+            You are a Senior Developer reviewing a Pull Request (#$pullNumber) for $owner/$repo.
+            Summarize the key changes, identified risks, and provide a high-level review of the implementation quality based on the diff below.
+            
+            [DIFF START]
+            $diff
+            [DIFF END]
+            
+            PR Summary:
+        """.trimIndent()
+    }
 }
