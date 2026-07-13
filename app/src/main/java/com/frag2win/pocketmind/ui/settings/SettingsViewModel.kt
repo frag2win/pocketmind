@@ -37,6 +37,9 @@ class SettingsViewModel @Inject constructor(
     private val _tavilyApiKey = MutableStateFlow(modelPreferences.getTavilyApiKey() ?: "")
     val tavilyApiKey = _tavilyApiKey.asStateFlow()
 
+    private val _githubToken = MutableStateFlow(modelPreferences.getGitHubToken() ?: "")
+    val githubToken = _githubToken.asStateFlow()
+
     private val _downloadStatuses = MutableStateFlow<Map<GemmaVariant, DownloadState>>(
         GemmaVariant.values().associateWith { variant ->
             if (downloadRepository.isModelDownloaded(variant)) DownloadState.Completed 
@@ -60,6 +63,11 @@ class SettingsViewModel @Inject constructor(
     fun updateTavilyApiKey(key: String) {
         _tavilyApiKey.value = key
         modelPreferences.setTavilyApiKey(key)
+    }
+
+    fun updateGitHubToken(token: String) {
+        _githubToken.value = token
+        modelPreferences.setGitHubToken(token)
     }
 
     fun downloadModel(variant: GemmaVariant) {

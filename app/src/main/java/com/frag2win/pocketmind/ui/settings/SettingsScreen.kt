@@ -25,6 +25,7 @@ fun SettingsScreen(
     val isAutoSelect by viewModel.isAutoSelect.collectAsState()
     val hfToken by viewModel.hfToken.collectAsState()
     val tavilyApiKey by viewModel.tavilyApiKey.collectAsState()
+    val githubToken by viewModel.githubToken.collectAsState()
     val downloadStatuses by viewModel.downloadStatuses.collectAsState()
     val ram = viewModel.getAvailableRamGb()
 
@@ -73,6 +74,27 @@ fun SettingsScreen(
             )
             Text(
                 "Required for real-time web search grounding.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "GitHub Integration",
+                style = MaterialTheme.typography.titleMedium
+            )
+            OutlinedTextField(
+                value = githubToken,
+                onValueChange = { viewModel.updateGitHubToken(it) },
+                label = { Text("GitHub Personal Access Token") },
+                placeholder = { Text("ghp_...") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation()
+            )
+            Text(
+                "Used for repo browsing and AI code analysis.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline
             )
