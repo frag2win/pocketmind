@@ -32,6 +32,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ### Fixed
   
   ### Changed
+- Update changelog and status for GitHub UI
 - optimize streaming message rendering and update markdown styling
 - **PERF: Streaming**: Optimized chat streaming performance and markdown rendering styling.
   
@@ -44,6 +45,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ### Fixed
   
   ### Changed
+- Update changelog and status for GitHub UI
 - optimize streaming message rendering and update markdown styling
   
   ## [Unreleased] - July 04, 2026
@@ -83,6 +85,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **BUG: Model Downloads**: Fixed 404 error by updating Gemma 4 download URLs to official `litert-community` paths.
   
   ### Changed
+- Update changelog and status for GitHub UI
 - optimize streaming message rendering and update markdown styling
 - Add README, ABOUT, and CODE_OF_CONDUCT for community standards
 - synchronize changelog updates
@@ -114,6 +117,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **BUG: Model Downloads**: Fixed 404 error by updating Gemma 4 download URLs to official `litert-community` paths.
   
   ### Changed
+- Update changelog and status for GitHub UI
 - optimize streaming message rendering and update markdown styling
 - Add README, ABOUT, and CODE_OF_CONDUCT for community standards
 - synchronize changelog updates
