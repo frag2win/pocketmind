@@ -159,7 +159,15 @@ class ChatViewModel @Inject constructor(
     }
 
     fun sendMessage(content: String) {
-        if (content.isBlank() || _isGenerating.value) return
+        processMessage(content, content)
+    }
+
+    fun sendGitHubMessage(uiDisplay: String, actualPrompt: String) {
+        processMessage(uiDisplay, actualPrompt)
+    }
+
+    private fun processMessage(uiDisplay: String, actualPrompt: String) {
+        if (uiDisplay.isBlank() || _isGenerating.value) return
 
         viewModelScope.launch {
             val isFirstTurn = messages.value.isEmpty()
@@ -171,23 +179,23 @@ class ChatViewModel @Inject constructor(
 
             _isGenerating.value = true
             
-            // Add user message to DB
-            chatDao.insertMessage(ChatMessage(sessionId = sessionId, role = "user", content = content))
+            // Add user message to DB (using UI display version)
+            chatDao.insertMessage(ChatMessage(sessionId = sessionId, role = "user", content = uiDisplay))
             
             // Update session title with temporary snippet if it was the first message
             if (isFirstTurn) {
-                chatDao.updateSessionTitle(sessionId, content.take(30) + "...")
+                chatDao.updateSessionTitle(sessionId, uiDisplay.take(30) + "...")
             }
             
-            var processedContent = content
-            val requiresSearch = isSearchRequired(content)
+            var processedContent = actualPrompt
+            val requiresSearch = isSearchRequired(actualPrompt)
             
             if (requiresSearch) {
                 _streamingMessage.value = "Searching the web..."
                 try {
-                    val searchResults = searchRepository.performWebSearch(content)
+                    val searchResults = searchRepository.performWebSearch(actualPrompt)
                     if (searchResults.isNotEmpty()) {
-                        processedContent = PromptBuilder.buildRAGPrompt(content, searchResults)
+                        processedContent = PromptBuilder.buildRAGPrompt(actualPrompt, searchResults)
                         _streamingMessage.value = "Analyzing web results..."
                     } else {
                         _streamingMessage.value = "No relevant web results found. Falling back to local knowledge..."
@@ -242,7 +250,7 @@ class ChatViewModel @Inject constructor(
                 _streamingMessage.value = null
 
                 if (isFirstTurn) {
-                    generateSessionTitle(sessionId, content, fullResponse)
+                    generateSessionTitle(sessionId, uiDisplay, fullResponse)
                 }
             } catch (e: Exception) {
                 _isModelLoading.value = false
