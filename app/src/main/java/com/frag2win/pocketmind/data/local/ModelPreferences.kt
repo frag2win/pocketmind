@@ -56,10 +56,19 @@ class ModelPreferences @Inject constructor(
         prefs.edit().putString(KEY_TAVILY_API_KEY, key).apply()
     }
 
+    fun getGitHubToken(): String? {
+        return prefs.getString(KEY_GITHUB_TOKEN, null)
+    }
+
+    fun setGitHubToken(token: String) {
+        prefs.edit().putString(KEY_GITHUB_TOKEN, token).apply()
+    }
+
     companion object {
         private const val KEY_SELECTED_VARIANT = "selected_variant"
         private const val KEY_AUTO_SELECT = "auto_select"
         private const val KEY_HF_TOKEN = "hf_token"
         private const val KEY_TAVILY_API_KEY = "tavily_api_key"
+        private const val KEY_GITHUB_TOKEN = "github_token"
     }
 }
