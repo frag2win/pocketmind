@@ -47,6 +47,11 @@ This document tracks the current progress of the project, mapping implemented fe
 - [x] Corrected Model URLs (litert-community)
 - [x] Context Window Management (4096 tokens auto-truncation)
 - [x] "Clear Chat" manual reset functionality
+- [x] Automatic Chat Session Titling (AI-generated summaries)
+- [x] Full-Text Search (FTS4 local indexing)
+- [x] Web-RAG (Real-time search grounding via Tavily/DuckDuckGo)
+- [x] Deep Web-RAG (On-device page scraping for live context)
+- [x] Optimized Streaming UI (Jitter-free, reverseLayout, Hybrid Markdown)
 
 ---
 *Updated: July 2026*

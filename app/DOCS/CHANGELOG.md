@@ -2,6 +2,21 @@
 
 All notable changes to the PocketMind project will be documented in this file.
   
+  ## [Unreleased] - July 10, 2026
+  
+  ### Added
+- **FEATURE: Deep Web-RAG**: Implemented on-device page scraping to fetch actual article content from search results, providing the AI with rich live data instead of just links.
+- **FEATURE: API-Free Search**: Added a fallback mechanism using Jsoup to scrape DuckDuckGo's static HTML, enabling real-time grounding without an external API key.
+- **FEATURE: Full-Text Search (FTS)**: Integrated Room FTS4 for lightning-fast local indexing of all conversation history, accessible via a new sidebar search bar.
+- **FEATURE: Auto-Titling**: Implemented automatic chat session titling after the first exchange, using the local AI to summarize the conversation into a 3-5 word title.
+
+  ### Fixed
+- **UI: Bouncing & Jitter**: Fundamentally resolved the violent screen bouncing and jitter during streaming by implementing `reverseLayout` and `Hybrid Rendering` (Text for streaming, Markdown for final).
+- **UI: Scroll Hijacking**: Fixed the auto-scroll conflict by implementing a state-driven scroll lock that respects user manual gestures.
+- **UI: Markdown Flashing**: Eliminated raw syntax flashing (e.g., `**`, `##`) during streaming by creating a stream-safe `toLiveAnnotatedString` parser.
+- **BUG: Shared State**: Fixed "New Chat" button failure by hoisting the `ChatViewModel` in `MainActivity` to ensure synchronized state between the sidebar and chat screen.
+- **UI: Model Loading**: Fixed the persistent model loading overlay bug to ensure it only appears when the engine is not ready.
+
   ## [Unreleased] - July 09, 2026
   
   ### Added
