@@ -3,14 +3,11 @@
 All notable changes to the PocketMind project will be documented in this file.
   
   ## [Unreleased] - July 13, 2026
-  
   ### Added
 - Register GitHub navigation routes
-  
-  ### Fixed
-  
-  ### Changed
-  
+- **FEATURE: AI GitHub Analysis**: Enabled AI-powered code explanation and Pull Request summarization directly from the GitHub browser UI.
+- **UI: AI Action Buttons**: Added "AutoAwesome" icons to GitHub list items to clearly indicate available AI actions.
+- **UX: GitHub Token Validation**: Implemented a "No Token" state in the GitHub browser with a direct link to Settings for easier setup.
   ## [Unreleased] - July 10, 2026
   
   ### Added

@@ -32,7 +32,8 @@ This document tracks the current progress of the project, mapping implemented fe
 - [x] Professional Markdown rendering with code block support
 - [x] Share PDF functionality
 - [x] "Copy to Clipboard" for chat messages
-- [ ] GitHub repository browser
+- [x] GitHub repository browser
+- [x] AI-powered GitHub analysis (PR Summaries, Code Explanation)
 - [ ] Live demo-ready prototype
 
 ## 5. New Features (Settings & Control)
