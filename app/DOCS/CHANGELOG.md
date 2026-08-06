@@ -2,8 +2,18 @@
 
 All notable changes to the PocketMind project will be documented in this file.
   
+  ## [Unreleased] - August 06, 2026
+  
+  ### Added
+- Add document parsing and attachment support to chat UI
+  
+  ### Fixed
+  
+  ### Changed
+  
   ## [Unreleased] - July 13, 2026
   ### Added
+- Add document parsing and attachment support to chat UI
 - Register GitHub navigation routes
 - **FEATURE: AI GitHub Analysis**: Enabled AI-powered code explanation and Pull Request summarization directly from the GitHub browser UI.
 - **UI: AI Action Buttons**: Added "AutoAwesome" icons to GitHub list items to clearly indicate available AI actions.
@@ -11,6 +21,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 10, 2026
   
   ### Added
+- Add document parsing and attachment support to chat UI
 - Register GitHub navigation routes
 - **FEATURE: Deep Web-RAG**: Implemented on-device page scraping to fetch actual article content from search results, providing the AI with rich live data instead of just links.
 - **FEATURE: API-Free Search**: Added a fallback mechanism using Jsoup to scrape DuckDuckGo's static HTML, enabling real-time grounding without an external API key.
@@ -27,6 +38,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 09, 2026
   
   ### Added
+- Add document parsing and attachment support to chat UI
 - Register GitHub navigation routes
   
   ### Fixed
@@ -39,6 +51,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 06, 2026
   
   ### Added
+- Add document parsing and attachment support to chat UI
 - Register GitHub navigation routes
 - Implement Web Search (RAG) grounding via Tavily API
   
@@ -51,6 +64,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 04, 2026
   
   ### Added
+- Add document parsing and attachment support to chat UI
 - Register GitHub navigation routes
 - Implement Web Search (RAG) grounding via Tavily API
 - Add Share PDF, Clear Chat, Copy to Clipboard, Context Management, and resolve UI streaming bugs
@@ -73,6 +87,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 03, 2026
   
   ### Added
+- Add document parsing and attachment support to chat UI
 - Register GitHub navigation routes
 - Implement Web Search (RAG) grounding via Tavily API
 - Add Share PDF, Clear Chat, Copy to Clipboard, Context Management, and resolve UI streaming bugs
@@ -94,6 +109,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 02, 2026
   
   ### Added
+- Add document parsing and attachment support to chat UI
 - Register GitHub navigation routes
 - Implement Web Search (RAG) grounding via Tavily API
 - Add Share PDF, Clear Chat, Copy to Clipboard, Context Management, and resolve UI streaming bugs
@@ -132,6 +148,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **MainActivity.kt:** Cleaned up fully qualified names for `ChatScreenRoot` and `Modifier` extensions to improve readability and comply with standard Kotlin style.
 
 ### Added
+- Add document parsing and attachment support to chat UI
 - Register GitHub navigation routes
 - Implement Web Search (RAG) grounding via Tavily API
 - Add Share PDF, Clear Chat, Copy to Clipboard, Context Management, and resolve UI streaming bugs
