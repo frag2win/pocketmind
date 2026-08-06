@@ -35,6 +35,20 @@ object PromptBuilder {
         """.trimIndent()
     }
 
+    fun buildPdfRAGPrompt(documentName: String, extractedPdfText: String, userPrompt: String): String {
+        return """
+            System: You are analyzing the attached document '$documentName'. 
+            Answer the user's prompt strictly based on the text inside [DOCUMENT START] and [DOCUMENT END]. 
+            Ignore unrelated prior conversation context.
+
+            [DOCUMENT START]
+            $extractedPdfText
+            [DOCUMENT END]
+
+            User Prompt: $userPrompt
+        """.trimIndent()
+    }
+
     fun buildCodeAnalysisPrompt(path: String, code: String): String {
         return """
             You are a Senior Software Engineer. Analyze the following source code from the file: $path.

@@ -22,7 +22,11 @@ fun ChatScreenPreview() {
             isGenerating = false,
             isModelLoading = false,
             streamingMessage = null,
+            attachedFileName = null,
             onSendMessage = {},
+            onAttachFile = {},
+            onDetachFile = {},
+            onOpenFile = {},
             onExportPdf = {},
             onClearChat = {},
             onMenuClick = {}

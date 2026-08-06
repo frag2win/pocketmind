@@ -77,6 +77,7 @@ dependencies {
     implementation(libs.itext7.core)
     implementation(libs.itext7.kernel)
     implementation(libs.itext7.layout)
+    implementation(libs.itextg)
 
     // Navigation & Security
     implementation(libs.androidx.navigation.compose)

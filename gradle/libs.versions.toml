@@ -16,6 +16,7 @@ hiltNavigationCompose = "1.2.0"
 litert = "2.1.5"
 litertlm = "0.13.1"
 itext7 = "7.2.5"
+itextg = "5.5.10"
 navigationCompose = "2.8.8"
 securityCrypto = "1.1.0-alpha06"
 materialIconsExtended = "1.7.8"
@@ -51,6 +52,7 @@ litert = { group = "com.google.ai.edge.litert", name = "litert", version.ref = "
 itext7-core = { group = "com.itextpdf", name = "itext7-core", version.ref = "itext7" }
 itext7-layout = { group = "com.itextpdf", name = "layout", version.ref = "itext7" }
 itext7-kernel = { group = "com.itextpdf", name = "kernel", version.ref = "itext7" }
+itextg = { group = "com.itextpdf", name = "itextg", version.ref = "itextg" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }

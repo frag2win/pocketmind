@@ -7,23 +7,38 @@ object GemmaPromptFormatter {
     /**
      * Formats an entire conversation history into Gemma's required instruction-tuned syntax.
      * Includes character-based truncation to avoid exceeding token limits (4096 tokens).
+     * Smart Anchoring: If a PDF was attached, we preserve context from that point forward
+     * to allow follow-up questions about the document.
      */
     fun formatHistory(messages: List<ChatMessage>, maxChars: Int = 12000): String {
         val builder = StringBuilder()
         
+        // Find the index of the most recent PDF attachment
+        val lastPdfIndex = messages.indexOfLast { 
+            it.displayContent?.startsWith("__PDF_ATTACHED_FILE__:", ignoreCase = true) == true ||
+            it.content.contains("TEXT FROM PDF:", ignoreCase = true)
+        }
+
+        // If a PDF is in the history, we only care about the conversation 
+        // from that document onwards to prevent "context contamination" from 
+        // unrelated previous topics.
+        val relevantMessages = if (lastPdfIndex != -1) {
+            messages.subList(lastPdfIndex, messages.size)
+        } else {
+            messages
+        }
+
         // Iterate backwards and stop when we exceed character limit (~3000 tokens)
-        // This leaves room for the model to generate a response.
-        val relevantMessages = mutableListOf<ChatMessage>()
+        val finalMessages = mutableListOf<ChatMessage>()
         var currentChars = 0
-        for (i in messages.indices.reversed()) {
-            val msg = messages[i]
-            // We check against content length, adding a small buffer for the turn tags
+        for (i in relevantMessages.indices.reversed()) {
+            val msg = relevantMessages[i]
             if (currentChars + msg.content.length > maxChars) break
-            relevantMessages.add(0, msg)
+            finalMessages.add(0, msg)
             currentChars += msg.content.length
         }
         
-        for (message in relevantMessages) {
+        for (message in finalMessages) {
             val roleTag = if (message.role == "user") "user" else "model"
             builder.append("<start_of_turn>${roleTag}\n${message.content.trim()}<end_of_turn>\n")
         }

@@ -1,8 +1,10 @@
 package com.frag2win.pocketmind.ui.settings
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
@@ -12,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import java.util.Locale
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.frag2win.pocketmind.domain.inference.GemmaVariant
 import com.frag2win.pocketmind.domain.remote.DownloadState
@@ -28,6 +31,7 @@ fun SettingsScreen(
     val githubToken by viewModel.githubToken.collectAsState()
     val downloadStatuses by viewModel.downloadStatuses.collectAsState()
     val ram = viewModel.getAvailableRamGb()
+    val scrollState = rememberScrollState()
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Settings") }) }
@@ -35,6 +39,8 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .padding(padding)
+                .fillMaxSize()
+                .verticalScroll(scrollState)
                 .padding(16.dp)
                 .selectableGroup()
         ) {
@@ -106,7 +112,7 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.titleLarge
             )
             Text(
-                text = "Your device has ~${String.format("%.1f", ram)} GB free RAM.",
+                text = "Your device has ~${String.format(Locale.getDefault(), "%.1f", ram)} GB free RAM.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.secondary
             )
@@ -132,20 +138,20 @@ fun SettingsScreen(
                 )
             }
 
-            Divider(modifier = Modifier.padding(vertical = 16.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
 
             Text("Model Management", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(12.dp))
             
-            GemmaVariant.values().forEach { variant ->
+            GemmaVariant.entries.forEach { variant ->
                 val state = downloadStatuses[variant] ?: DownloadState.Idle
                 ModelItem(
                     variant = variant,
                     isSelected = (variant == selectedVariant),
                     state = state,
                     onSelect = { viewModel.updateVariant(variant) },
-                    onDownload = { viewModel.downloadModel(variant) },
-                    onDelete = { viewModel.deleteModel(variant) }
-                )
+                    onDownload = { viewModel.downloadModel(variant) }
+                ) { viewModel.deleteModel(variant) }
             }
         }
     }
@@ -164,13 +170,13 @@ fun ModelItem(
         Row(
             Modifier
                 .fillMaxWidth()
-                .height(88.dp)
+                .heightIn(min = 96.dp)
                 .selectable(
                     selected = isSelected,
                     onClick = onSelect,
                     role = Role.RadioButton
                 )
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             RadioButton(
@@ -178,10 +184,11 @@ fun ModelItem(
                 onClick = null
             )
             Column(modifier = Modifier.padding(start = 16.dp).weight(1f)) {
-                Text(text = variant.label, style = MaterialTheme.typography.bodyLarge)
+                Text(text = variant.label, style = MaterialTheme.typography.titleMedium)
                 Text(
                     text = "Size: ${variant.modelSize} | RAM: ${variant.ramRequired}",
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 
                 when (state) {
@@ -189,18 +196,21 @@ fun ModelItem(
                         Text(
                             text = "Error: ${state.message}",
                             color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.labelSmall
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(top = 4.dp)
                         )
                     }
                     is DownloadState.Downloading -> {
                         LinearProgressIndicator(
                             progress = { state.progress / 100f },
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
                         )
                     }
                     else -> {}
                 }
             }
+            
+            Spacer(modifier = Modifier.width(8.dp))
             
             when (state) {
                 DownloadState.Idle, is DownloadState.Error -> {
@@ -214,10 +224,14 @@ fun ModelItem(
                     }
                 }
                 is DownloadState.Downloading -> {
-                    Text("${state.progress}%", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        text = "${state.progress}%",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         }
-        Divider(modifier = Modifier.padding(start = 48.dp), thickness = 0.5.dp)
+        HorizontalDivider(modifier = Modifier.padding(start = 56.dp, end = 16.dp), thickness = 0.5.dp)
     }
 }

@@ -14,6 +14,7 @@ import com.frag2win.pocketmind.domain.inference.GemmaVariant
 import com.frag2win.pocketmind.domain.inference.PocketMindInference
 import com.frag2win.pocketmind.domain.inference.PromptBuilder
 import com.frag2win.pocketmind.data.local.ChatSession
+import com.frag2win.pocketmind.util.DocumentParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
@@ -37,7 +39,8 @@ class ChatViewModel @Inject constructor(
     private val chatDao: ChatDao,
     private val pdfGenerator: PdfGenerator,
     private val modelPreferences: ModelPreferences,
-    private val searchRepository: SearchRepository
+    private val searchRepository: SearchRepository,
+    private val documentParser: DocumentParser
 ) : ViewModel() {
 
     private val _currentSessionId = MutableStateFlow<Int?>(null)
@@ -67,6 +70,12 @@ class ChatViewModel @Inject constructor(
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
+
+    private val _attachedFileUri = MutableStateFlow<Uri?>(null)
+    val attachedFileUri = _attachedFileUri.asStateFlow()
+
+    private val _attachedFileName = MutableStateFlow<String?>(null)
+    val attachedFileName = _attachedFileName.asStateFlow()
 
     @OptIn(kotlinx.coroutines.FlowPreview::class)
     val searchResults: StateFlow<List<ChatMessage>> = _searchQuery
@@ -132,6 +141,16 @@ class ChatViewModel @Inject constructor(
         _searchQuery.value = query
     }
 
+    fun attachFile(uri: Uri, name: String) {
+        _attachedFileUri.value = uri
+        _attachedFileName.value = name
+    }
+
+    fun detachFile() {
+        _attachedFileUri.value = null
+        _attachedFileName.value = null
+    }
+
     fun deleteSession(sessionId: Int) {
         viewModelScope.launch {
             chatDao.deleteMessagesForSession(sessionId)
@@ -158,15 +177,48 @@ class ChatViewModel @Inject constructor(
         return temporalKeywords.any { query.contains(it, ignoreCase = true) }
     }
 
-    fun sendMessage(content: String) {
-        processMessage(content, content)
+    fun sendMessage(content: String, context: android.content.Context? = null) {
+        if (_attachedFileUri.value != null && context != null) {
+            viewModelScope.launch {
+                val fileUri = _attachedFileUri.value!!
+                val fileName = _attachedFileName.value ?: "Document"
+                _isGenerating.value = true
+                _streamingMessage.value = "Extracting document text..."
+                
+                try {
+                    // Strictly await extraction on IO thread
+                    val extractedText = withContext(Dispatchers.IO) {
+                        documentParser.extractTextFromPdf(context, fileUri)
+                    }
+                    
+                    if (extractedText.isBlank()) {
+                        _streamingMessage.value = "Failed to read PDF content."
+                        _isGenerating.value = false
+                        return@launch
+                    }
+
+                    val processedPrompt = PromptBuilder.buildPdfRAGPrompt(fileName, extractedText, content)
+                    val internalMarker = "__PDF_ATTACHED_FILE__:$fileName"
+                    val uiDisplay = "$internalMarker $content"
+                    
+                    detachFile() // Clear attachment after successful processing
+                    _isGenerating.value = false // Reset before entering processMessage
+                    processMessage(uiDisplay, processedPrompt, null, fileUri.toString())
+                } catch (e: Exception) {
+                    _streamingMessage.value = "Error parsing PDF: ${e.localizedMessage}"
+                    _isGenerating.value = false
+                }
+            }
+        } else {
+            processMessage(content, content)
+        }
     }
 
     fun sendGitHubMessage(uiDisplay: String, actualPrompt: String) {
         processMessage(uiDisplay, actualPrompt)
     }
 
-    private fun processMessage(uiDisplay: String, actualPrompt: String) {
+    private fun processMessage(uiDisplay: String, actualPrompt: String, pdfContext: String? = null, fileUri: String? = null) {
         if (uiDisplay.isBlank() || _isGenerating.value) return
 
         viewModelScope.launch {
@@ -179,31 +231,58 @@ class ChatViewModel @Inject constructor(
 
             _isGenerating.value = true
             
-            // Add user message to DB (using UI display version)
-            chatDao.insertMessage(ChatMessage(sessionId = sessionId, role = "user", content = uiDisplay))
+            var processedContent = actualPrompt
+            
+            // Handle PDF Context injection
+            if (pdfContext != null) {
+                processedContent = """
+                    SYSTEM: You are a document analysis assistant. Use the text below to answer.
+                    
+                    EXTRACTED TEXT:
+                    $pdfContext
+                    
+                    USER QUESTION:
+                    $actualPrompt
+                """.trimIndent()
+            } else {
+                val requiresSearch = isSearchRequired(actualPrompt)
+                if (requiresSearch) {
+                    _streamingMessage.value = "Searching the web..."
+                    try {
+                        val searchResults = searchRepository.performWebSearch(actualPrompt)
+                        if (searchResults.isNotEmpty()) {
+                            processedContent = PromptBuilder.buildRAGPrompt(actualPrompt, searchResults)
+                            _streamingMessage.value = "Analyzing web results..."
+                        } else {
+                            _streamingMessage.value = "No relevant web results found. Falling back to local knowledge..."
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        _streamingMessage.value = "Web search failed. Falling back to local knowledge..."
+                    }
+                }
+            }
+
+            // Add user message to DB with the FULL processed content for the model
+            // and the UI display string for the user.
+            chatDao.insertMessage(
+                ChatMessage(
+                    sessionId = sessionId, 
+                    role = "user", 
+                    content = processedContent,
+                    displayContent = uiDisplay,
+                    fileUri = fileUri
+                )
+            )
             
             // Update session title with temporary snippet if it was the first message
             if (isFirstTurn) {
-                chatDao.updateSessionTitle(sessionId, uiDisplay.take(30) + "...")
-            }
-            
-            var processedContent = actualPrompt
-            val requiresSearch = isSearchRequired(actualPrompt)
-            
-            if (requiresSearch) {
-                _streamingMessage.value = "Searching the web..."
-                try {
-                    val searchResults = searchRepository.performWebSearch(actualPrompt)
-                    if (searchResults.isNotEmpty()) {
-                        processedContent = PromptBuilder.buildRAGPrompt(actualPrompt, searchResults)
-                        _streamingMessage.value = "Analyzing web results..."
-                    } else {
-                        _streamingMessage.value = "No relevant web results found. Falling back to local knowledge..."
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    _streamingMessage.value = "Web search failed. Falling back to local knowledge..."
+                val displayTitle = if (uiDisplay.startsWith("__PDF_ATTACHED_FILE__:")) {
+                    uiDisplay.substringAfter(":").substringAfter(" ").take(30)
+                } else {
+                    uiDisplay.take(30)
                 }
+                chatDao.updateSessionTitle(sessionId, "$displayTitle...")
             }
             
             try {
@@ -226,9 +305,8 @@ class ChatViewModel @Inject constructor(
                     }
                 }
 
-                // Construct the full history INCLUDING the newly added user message
-                val currentHistory = messages.value.filter { it.sessionId == sessionId } + 
-                    ChatMessage(sessionId = sessionId, role = "user", content = processedContent)
+                // Construct the full history including the newly added user message (retrieved from DB/state)
+                val currentHistory = messages.value.filter { it.sessionId == sessionId }
                 val formattedPrompt = GemmaPromptFormatter.formatHistory(currentHistory)
 
                 // Inject temporary "Thinking..." state
@@ -265,7 +343,10 @@ class ChatViewModel @Inject constructor(
     private fun generateSessionTitle(sessionId: Int, userMsg: String, assistantMsg: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val prompt = GemmaPromptFormatter.formatSummaryPrompt(userMsg, assistantMsg)
+                val cleanUserMsg = if (userMsg.startsWith("__PDF_ATTACHED_FILE__:")) {
+                    userMsg.substringAfter(":").substringAfter(" ")
+                } else userMsg
+                val prompt = GemmaPromptFormatter.formatSummaryPrompt(cleanUserMsg, assistantMsg)
                 val rawTitle = inferenceEngine.generate(prompt)
                 val cleanTitle = rawTitle
                     .replace("\"", "")
