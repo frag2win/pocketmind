@@ -13,6 +13,9 @@ interface ChatDao {
     @Query("SELECT * FROM chat_messages WHERE sessionId = :sessionId ORDER BY timestamp ASC")
     fun getMessagesForSession(sessionId: Int): Flow<List<ChatMessage>>
 
+    @Query("SELECT * FROM chat_messages WHERE sessionId = :sessionId ORDER BY timestamp ASC")
+    suspend fun getMessagesForSessionDirect(sessionId: Int): List<ChatMessage>
+
     @Insert
     suspend fun createSession(session: ChatSession): Long
 

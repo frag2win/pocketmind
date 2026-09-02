@@ -316,8 +316,8 @@ class ChatViewModel @Inject constructor(
                     }
                 }
 
-                // Construct the full history including the newly added user message (retrieved from DB/state)
-                val currentHistory = messages.value.filter { it.sessionId == sessionId }
+                // Construct the full history including the newly added user message straight from Room DB
+                val currentHistory = chatDao.getMessagesForSessionDirect(sessionId)
                 val formattedPrompt = GemmaPromptFormatter.formatHistory(
                     messages = currentHistory,
                     displayName = modelPreferences.getDisplayName()
