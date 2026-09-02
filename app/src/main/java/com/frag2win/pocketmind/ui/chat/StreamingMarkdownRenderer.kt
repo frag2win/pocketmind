@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.unit.TextUnit
 
 /**
  * A lightweight, regex-based stream-safe markdown parser.
@@ -89,15 +90,17 @@ fun StreamingMarkdownText(
     content: String,
     modifier: Modifier = Modifier
 ) {
-    // Optimization: Key the parsing logic to significant content changes
-    val annotatedString = remember(content) {
-        content.toLiveAnnotatedString()
+    val textColor = MaterialTheme.colorScheme.onBackground
+    val accentColor = MaterialTheme.colorScheme.tertiary
+
+    val annotatedString = remember(content, textColor, accentColor) {
+        content.toLiveAnnotatedString(primaryColor = textColor, accentColor = accentColor)
     }
 
     Text(
         text = annotatedString,
         modifier = modifier,
-        style = MaterialTheme.typography.bodyLarge.copy(lineHeight = androidx.compose.ui.unit.TextUnit.Unspecified),
-        color = Color.White
+        style = MaterialTheme.typography.bodyLarge.copy(lineHeight = TextUnit.Unspecified),
+        color = textColor
     )
 }

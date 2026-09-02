@@ -1,21 +1,23 @@
 package com.frag2win.pocketmind.domain.inference
 
 import com.frag2win.pocketmind.data.repository.SearchResult
+import java.time.LocalDate
 
 object PromptBuilder {
 
-    fun buildRAGPrompt(query: String, searchResults: List<SearchResult>): String {
+    fun buildRAGPrompt(query: String, searchResults: List<SearchResult>, displayName: String = "User"): String {
         val contextBuilder = StringBuilder()
         
         searchResults.forEachIndexed { index, result ->
             contextBuilder.append("Source ${index + 1}: ${result.snippet} (URL: ${result.url})\n")
         }
 
+        val effectiveName = if (displayName.isBlank()) "User" else displayName
         val systemInstruction = """
-            You are PocketMind, a helpful and precise AI assistant. 
-            Today's date is ${java.time.LocalDate.now()}.
+            You are PocketMind, an offline-first AI assistant running locally on Android. You are talking to $effectiveName.
+            Today's date is ${LocalDate.now()}.
             Below is the [WEB CONTEXT] containing REAL-TIME information from the internet. 
-            Use this context to answer the user's request accurately.
+            Use this context to answer $effectiveName's request accurately.
             
             IMPORTANT:
             1. DO NOT say you don't have access to real-time data. You HAVE access via the context below.
@@ -72,6 +74,48 @@ object PromptBuilder {
             [DIFF END]
             
             PR Summary:
+        """.trimIndent()
+    }
+
+    /**
+     * System prompt instructing Gemma to output strict JSON schema for the AI Canvas bridge.
+     */
+    val CANVAS_SYSTEM_PROMPT = """
+        System: You are an AI Presentation and Document Architect.
+        Your sole task is to generate structured canvas data in valid JSON format.
+        
+        CRITICAL OUTPUT INSTRUCTIONS:
+        1. Output ONLY a valid JSON object matching the requested schema.
+        2. Do NOT output markdown code fences (like ```json or ```), preamble, or extra explanations.
+        3. Ensure all quotes and special characters within strings are correctly escaped.
+        
+        REQUIRED JSON SCHEMA:
+        {
+          "title": "Document Title",
+          "type": "presentation",
+          "slides": [
+            {
+              "title": "Slide Title",
+              "bullets": [
+                "Key takeaway 1",
+                "Key takeaway 2"
+              ]
+            }
+          ]
+        }
+    """.trimIndent()
+
+    /**
+     * Builds a canvas prompt incorporating the strict JSON output schema requirement.
+     */
+    fun buildCanvasPrompt(userPrompt: String, canvasType: String = "presentation"): String {
+        return """
+            $CANVAS_SYSTEM_PROMPT
+            
+            [CANVAS TYPE]: $canvasType
+            [USER REQUEST]: $userPrompt
+            
+            [JSON OUTPUT]:
         """.trimIndent()
     }
 }

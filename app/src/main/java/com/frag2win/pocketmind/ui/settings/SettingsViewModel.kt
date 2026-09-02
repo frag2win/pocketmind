@@ -31,6 +31,11 @@ class SettingsViewModel @Inject constructor(
     )
     val selectedVariant = _selectedVariant.asStateFlow()
 
+    private val _displayName = MutableStateFlow(modelPreferences.getDisplayName())
+    val displayName = _displayName.asStateFlow()
+
+    val userName = displayName
+
     private val _hfToken = MutableStateFlow(modelPreferences.getHfToken() ?: "")
     val hfToken = _hfToken.asStateFlow()
 
@@ -54,6 +59,13 @@ class SettingsViewModel @Inject constructor(
         modelPreferences.setAutoSelectEnabled(false)
         _isAutoSelect.value = false
     }
+
+    fun updateDisplayName(name: String) {
+        _displayName.value = name
+        modelPreferences.setDisplayName(name)
+    }
+
+    fun updateUserName(name: String) = updateDisplayName(name)
 
     fun updateHfToken(token: String) {
         _hfToken.value = token

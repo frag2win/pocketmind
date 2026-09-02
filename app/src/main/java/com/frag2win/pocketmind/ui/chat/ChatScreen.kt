@@ -32,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.provider.OpenableColumns
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -178,15 +180,19 @@ fun ChatScreen(
         }
     }
 
+    val isDark = isSystemInDarkTheme()
+    val bgGradientColors = if (isDark) {
+        listOf(MaterialTheme.colorScheme.background, Color(0xFF0A0E1A))
+    } else {
+        listOf(MaterialTheme.colorScheme.background, Color(0xFFF1F5F9))
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        Color(0xFF000B18) // Dark deep blue gradient at bottom
-                    )
+                    colors = bgGradientColors
                 )
             )
             .imePadding()
@@ -215,12 +221,6 @@ fun ChatScreen(
                     "PocketMind",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground
-                )
-                Icon(
-                    Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(20.dp)
                 )
             }
 
@@ -268,6 +268,7 @@ fun ChatScreen(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             color = Color.Transparent
         ) {
@@ -300,10 +301,14 @@ fun ChatScreen(
                     )
                 }
 
+                val inputBgColor = if (isDark) Color(0xFF1E1F20) else Color(0xFFF1F5F9)
+                val inputIconColor = if (isDark) Color.White else Color(0xFF475569)
+                val inputTextColor = MaterialTheme.colorScheme.onBackground
+
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(32.dp))
-                        .background(Color(0xFF1E1F20)) // Gemini dark input background
+                        .background(inputBgColor)
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -311,7 +316,7 @@ fun ChatScreen(
                         Icon(
                             Icons.Default.AttachFile,
                             contentDescription = "Attach PDF",
-                            tint = Color.White
+                            tint = inputIconColor
                         )
                     }
 
@@ -333,8 +338,9 @@ fun ChatScreen(
                             disabledContainerColor = Color.Transparent,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
-                            cursorColor = Color.White,
-                            focusedTextColor = Color.White
+                            cursorColor = MaterialTheme.colorScheme.primary,
+                            focusedTextColor = inputTextColor,
+                            unfocusedTextColor = inputTextColor
                         ),
                         maxLines = 4
                     )
@@ -344,7 +350,7 @@ fun ChatScreen(
                             Icon(
                                 Icons.Default.Mic,
                                 contentDescription = "Voice",
-                                tint = Color.White
+                                tint = inputIconColor
                             )
                         }
                     } else {
@@ -496,9 +502,9 @@ fun EmptyChatState() {
         Spacer(modifier = Modifier.height(24.dp))
         
         Text(
-            text = "What's the vibe, shubham?",
+            text = "What's the vibe?",
             style = MaterialTheme.typography.headlineMedium,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.Normal,
             fontSize = 28.sp
         )
@@ -513,7 +519,12 @@ fun MessageBubble(
     isStreaming: Boolean = false
 ) {
     val isUser = message.role == "user"
-    
+    val isDark = isSystemInDarkTheme()
+    val userBubbleBg = if (isDark) Color(0xFF272A30) else Color(0xFFE2E8F0)
+    val userTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+    val userBorderColor = if (isDark) Color(0xFF3F434A) else Color(0xFFCBD5E1)
+    val actionIconTint = if (isDark) Color.Gray else Color(0xFF64748B)
+
     // Key Optimization: Only recompose the content part when streaming
     Row(
         modifier = Modifier
@@ -561,14 +572,16 @@ fun MessageBubble(
                 }
 
                 Surface(
-                    color = Color(0xFF2A2B2D), // Dark grey for user bubble
-                    shape = RoundedCornerShape(20.dp),
+                    color = userBubbleBg,
+                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 4.dp),
+                    border = BorderStroke(1.dp, userBorderColor),
+                    shadowElevation = 2.dp,
                     modifier = Modifier.padding(start = 48.dp)
                 ) {
                     Text(
                         text = userText,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.White,
+                        color = userTextColor,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                     )
                 }
@@ -593,7 +606,7 @@ fun MessageBubble(
                     
                     if (message.content.isNotEmpty()) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                             horizontalArrangement = Arrangement.Start,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -607,12 +620,12 @@ fun MessageBubble(
                                 Icon(
                                     imageVector = Icons.Default.ContentCopy,
                                     contentDescription = "Copy Message",
-                                    tint = Color.Gray,
+                                    tint = actionIconTint,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
                             
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
 
                             IconButton(
                                 onClick = onExportPdf,
@@ -621,7 +634,7 @@ fun MessageBubble(
                                 Icon(
                                     imageVector = Icons.Default.PictureAsPdf,
                                     contentDescription = "Export PDF",
-                                    tint = Color.Gray,
+                                    tint = actionIconTint,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }

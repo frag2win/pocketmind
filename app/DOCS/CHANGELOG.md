@@ -6,8 +6,15 @@ All notable changes to the PocketMind project will be documented in this file.
   
   ### Added
 - Add document parsing and attachment support to chat UI
+- **FEATURE: AI Canvas Bridge Skeleton**: Added `buildCanvasPrompt` system prompt in `PromptBuilder`, created `CanvasScreen` and `CanvasViewModel` with embedded WebView JS evaluation bridge.
   
   ### Fixed
+- **BUG: Token Output Serialization**: Refactored LiteRTInferenceEngine token extraction logic to extract raw Content.Text fragments from Message turns instead of relying on toString(), preventing metadata leak into the chat stream and adding mid-stream exception handling.
+- **UI: Navigation & TopBar Cleanup**: Removed non-functional dropdown arrow from top app bar, replaced hardcoded developer name in navigation drawer and empty chat state with clean placeholders, and standardized drawer padding grid.
+- **UI: Settings Top Padding & User Profile**: Reduced top inset gap on Settings screen, added Back navigation button, added Display Name input bound to EncryptedSharedPreferences, and dynamically updated navigation drawer user label.
+- **FEATURE: Display Name & System Prompt Awareness**: Integrated `KEY_DISPLAY_NAME` into EncryptedSharedPreferences, cleaned up GitHub input from Settings, removed GitHub Browser item from navigation drawer, and injected user self-awareness preamble into local Gemma prompt formatting.
+- **UI: Chat Interface Refinement**: Enhanced user message bubble contrast with slate grey background, subtle stroke and elevation, standardized 16dp spacing between AI response action icons (Copy, PDF), and applied safe navigation bar padding to bottom text input pill.
+- **BUG & UX: Prompt Tag Leak & Theme Adaptive Rendering**: Sanitized raw model output to strip `<start_of_turn>` / `<end_of_turn>` prompt tags, fixed token space stripping during streaming, restored instruction-tuned Gemma turn history formatting, and made Markdown, Streaming text, background gradients, user bubbles, and input pill adaptively styled for full high-contrast legibility in both Android Light Mode and Dark Mode.
   
   ### Changed
   

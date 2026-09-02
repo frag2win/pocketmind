@@ -28,9 +28,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.frag2win.pocketmind.ui.canvas.CanvasScreen
+import com.frag2win.pocketmind.ui.canvas.CanvasViewModel
 import com.frag2win.pocketmind.ui.chat.ChatScreenRoot
 import com.frag2win.pocketmind.ui.github.GitHubScreen
 import com.frag2win.pocketmind.ui.settings.SettingsScreen
@@ -61,8 +64,16 @@ class MainActivity : ComponentActivity() {
                             val sessions by viewModel.sessions.collectAsState()
                             val searchQuery by viewModel.searchQuery.collectAsState()
                             val searchResults by viewModel.searchResults.collectAsState()
+                            val userName by viewModel.userName.collectAsState()
+
+                            LaunchedEffect(drawerState.isOpen) {
+                                if (drawerState.isOpen) {
+                                    viewModel.refreshUserName()
+                                }
+                            }
 
                             DrawerContent(
+                                userName = userName,
                                 onNavigate = { route ->
                                     scope.launch { drawerState.close() }
                                     navController.navigate(route)
@@ -111,7 +122,16 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             composable("settings") {
-                                SettingsScreen()
+                                SettingsScreen(
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable("canvas") {
+                                val canvasViewModel: CanvasViewModel = hiltViewModel()
+                                CanvasScreen(
+                                    viewModel = canvasViewModel,
+                                    onNavigateBack = { navController.popBackStack() }
+                                )
                             }
                             composable("github") {
                                 GitHubScreen(
@@ -145,6 +165,7 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrawerContent(
+    userName: String = "User",
     onNavigate: (String) -> Unit, 
     onNewChat: () -> Unit,
     sessions: List<com.frag2win.pocketmind.data.local.ChatSession> = emptyList(),
@@ -204,7 +225,7 @@ fun DrawerContent(
             style = MaterialTheme.typography.headlineMedium,
             color = Color.White,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(vertical = 12.dp)
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -216,8 +237,8 @@ fun DrawerContent(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(28.dp),
+                .height(52.dp),
+            shape = RoundedCornerShape(26.dp),
             color = Color(0xFF1E1F20)
         ) {
             Row(
@@ -232,28 +253,26 @@ fun DrawerContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Spacer(modifier = Modifier.height(8.dp))
-
             Surface(
-                onClick = { onNavigate("github") },
+                onClick = { onNavigate("canvas") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 2.dp),
                 shape = RoundedCornerShape(12.dp),
                 color = Color.Transparent
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
+                        .padding(horizontal = 8.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Code, contentDescription = null, tint = Color.Gray)
+                    Icon(Icons.Default.Slideshow, contentDescription = null, tint = Color.Cyan)
                     Spacer(modifier = Modifier.width(16.dp))
-                    Text("GitHub Browser", color = Color.White)
+                    Text("AI Canvas", color = Color.White)
                 }
             }
 
@@ -264,17 +283,18 @@ fun DrawerContent(
                 color = Color.White, 
                 fontSize = 14.sp, 
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(horizontal = 4.dp)
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 items(sessions) { session ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
                             .clickable { onSessionClick(session.id) }
-                            .padding(vertical = 4.dp, horizontal = 4.dp),
+                            .padding(vertical = 6.dp, horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -287,13 +307,13 @@ fun DrawerContent(
                         )
                         IconButton(
                             onClick = { onSessionDelete(session.id) },
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(28.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
                                 contentDescription = "Delete Chat",
                                 tint = Color.Gray.copy(alpha = 0.6f),
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
@@ -303,10 +323,12 @@ fun DrawerContent(
 
         HorizontalDivider(color = Color(0xFF2A2B2D), thickness = 1.dp, modifier = Modifier.padding(vertical = 8.dp))
 
+        val effectiveDisplayName = if (userName.isBlank()) "User" else userName
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(horizontal = 4.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -322,10 +344,11 @@ fun DrawerContent(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "shubham pawar", 
+                    effectiveDisplayName, 
                     color = Color.White, 
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp
+                    fontSize = 15.sp,
+                    maxLines = 1
                 )
             }
             IconButton(onClick = { onNavigate("settings") }) {

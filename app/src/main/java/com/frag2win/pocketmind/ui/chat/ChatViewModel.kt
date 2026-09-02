@@ -46,6 +46,13 @@ class ChatViewModel @Inject constructor(
     private val _currentSessionId = MutableStateFlow<Int?>(null)
     val currentSessionId: StateFlow<Int?> = _currentSessionId.asStateFlow()
 
+    private val _userName = MutableStateFlow(modelPreferences.getUserName())
+    val userName: StateFlow<String> = _userName.asStateFlow()
+
+    fun refreshUserName() {
+        _userName.value = modelPreferences.getUserName()
+    }
+
     val sessions: StateFlow<List<ChatSession>> = chatDao.getAllSessions()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
@@ -251,7 +258,11 @@ class ChatViewModel @Inject constructor(
                     try {
                         val searchResults = searchRepository.performWebSearch(actualPrompt)
                         if (searchResults.isNotEmpty()) {
-                            processedContent = PromptBuilder.buildRAGPrompt(actualPrompt, searchResults)
+                            processedContent = PromptBuilder.buildRAGPrompt(
+                                query = actualPrompt,
+                                searchResults = searchResults,
+                                displayName = modelPreferences.getDisplayName()
+                            )
                             _streamingMessage.value = "Analyzing web results..."
                         } else {
                             _streamingMessage.value = "No relevant web results found. Falling back to local knowledge..."
@@ -307,7 +318,10 @@ class ChatViewModel @Inject constructor(
 
                 // Construct the full history including the newly added user message (retrieved from DB/state)
                 val currentHistory = messages.value.filter { it.sessionId == sessionId }
-                val formattedPrompt = GemmaPromptFormatter.formatHistory(currentHistory)
+                val formattedPrompt = GemmaPromptFormatter.formatHistory(
+                    messages = currentHistory,
+                    displayName = modelPreferences.getDisplayName()
+                )
 
                 // Inject temporary "Thinking..." state
                 _streamingMessage.value = "Thinking..."
@@ -321,14 +335,15 @@ class ChatViewModel @Inject constructor(
                         isFirstToken = false
                     }
                     fullResponse += token
-                    _streamingMessage.value = fullResponse
+                    _streamingMessage.value = GemmaPromptFormatter.sanitizeOutput(fullResponse)
                 }
                 
-                chatDao.insertMessage(ChatMessage(sessionId = sessionId, role = "assistant", content = fullResponse))
+                val finalCleanResponse = GemmaPromptFormatter.sanitizeOutput(fullResponse)
+                chatDao.insertMessage(ChatMessage(sessionId = sessionId, role = "assistant", content = finalCleanResponse))
                 _streamingMessage.value = null
 
                 if (isFirstTurn) {
-                    generateSessionTitle(sessionId, uiDisplay, fullResponse)
+                    generateSessionTitle(sessionId, uiDisplay, finalCleanResponse)
                 }
             } catch (e: Exception) {
                 _isModelLoading.value = false
