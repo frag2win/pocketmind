@@ -2,9 +2,19 @@
 
 All notable changes to the PocketMind project will be documented in this file.
   
+  ## [Unreleased] - September 11, 2026
+  
+  ### Added
+- Add Inline Canvas Artifacts system and Download/PocketMind export
+  
+  ### Fixed
+  
+  ### Changed
+  
   ## [Unreleased] - August 06, 2026
   
   ### Added
+- Add Inline Canvas Artifacts system and Download/PocketMind export
 - Add document parsing and attachment support to chat UI
 - **FEATURE: AI Canvas Bridge Skeleton**: Added `buildCanvasPrompt` system prompt in `PromptBuilder`, created `CanvasScreen` and `CanvasViewModel` with embedded WebView JS evaluation bridge.
 - **FEATURE: Inline Canvas Artifacts System**: Added inline `ArtifactCard` composable in the chat stream, popover attachment menu with "Upload files" and "Canvas Mode", embedded artifact payload state in Room DB (`ChatMessage`), full-screen WebView preview sheet, and file export to `Download/PocketMind`.
@@ -21,6 +31,7 @@ All notable changes to the PocketMind project will be documented in this file.
   
   ## [Unreleased] - July 13, 2026
   ### Added
+- Add Inline Canvas Artifacts system and Download/PocketMind export
 - Add document parsing and attachment support to chat UI
 - Register GitHub navigation routes
 - **FEATURE: AI GitHub Analysis**: Enabled AI-powered code explanation and Pull Request summarization directly from the GitHub browser UI.
@@ -29,6 +40,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 10, 2026
   
   ### Added
+- Add Inline Canvas Artifacts system and Download/PocketMind export
 - Add document parsing and attachment support to chat UI
 - Register GitHub navigation routes
 - **FEATURE: Deep Web-RAG**: Implemented on-device page scraping to fetch actual article content from search results, providing the AI with rich live data instead of just links.
@@ -46,6 +58,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 09, 2026
   
   ### Added
+- Add Inline Canvas Artifacts system and Download/PocketMind export
 - Add document parsing and attachment support to chat UI
 - Register GitHub navigation routes
   
@@ -59,6 +72,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 06, 2026
   
   ### Added
+- Add Inline Canvas Artifacts system and Download/PocketMind export
 - Add document parsing and attachment support to chat UI
 - Register GitHub navigation routes
 - Implement Web Search (RAG) grounding via Tavily API
@@ -72,6 +86,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 04, 2026
   
   ### Added
+- Add Inline Canvas Artifacts system and Download/PocketMind export
 - Add document parsing and attachment support to chat UI
 - Register GitHub navigation routes
 - Implement Web Search (RAG) grounding via Tavily API
@@ -95,6 +110,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 03, 2026
   
   ### Added
+- Add Inline Canvas Artifacts system and Download/PocketMind export
 - Add document parsing and attachment support to chat UI
 - Register GitHub navigation routes
 - Implement Web Search (RAG) grounding via Tavily API
@@ -117,6 +133,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - July 02, 2026
   
   ### Added
+- Add Inline Canvas Artifacts system and Download/PocketMind export
 - Add document parsing and attachment support to chat UI
 - Register GitHub navigation routes
 - Implement Web Search (RAG) grounding via Tavily API
@@ -156,6 +173,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **MainActivity.kt:** Cleaned up fully qualified names for `ChatScreenRoot` and `Modifier` extensions to improve readability and comply with standard Kotlin style.
 
 ### Added
+- Add Inline Canvas Artifacts system and Download/PocketMind export
 - Add document parsing and attachment support to chat UI
 - Register GitHub navigation routes
 - Implement Web Search (RAG) grounding via Tavily API
