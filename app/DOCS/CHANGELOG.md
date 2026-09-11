@@ -7,6 +7,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ### Added
 - Add document parsing and attachment support to chat UI
 - **FEATURE: AI Canvas Bridge Skeleton**: Added `buildCanvasPrompt` system prompt in `PromptBuilder`, created `CanvasScreen` and `CanvasViewModel` with embedded WebView JS evaluation bridge.
+- **FEATURE: Inline Canvas Artifacts System**: Added inline `ArtifactCard` composable in the chat stream, popover attachment menu with "Upload files" and "Canvas Mode", embedded artifact payload state in Room DB (`ChatMessage`), full-screen WebView preview sheet, and file export to `Download/PocketMind`.
   
   ### Fixed
 - **BUG: Token Output Serialization**: Refactored LiteRTInferenceEngine token extraction logic to extract raw Content.Text fragments from Message turns instead of relying on toString(), preventing metadata leak into the chat stream and adding mid-stream exception handling.

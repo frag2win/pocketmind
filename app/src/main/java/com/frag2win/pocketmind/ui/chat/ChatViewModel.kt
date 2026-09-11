@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.io.File
 import javax.inject.Inject
 
@@ -83,6 +84,17 @@ class ChatViewModel @Inject constructor(
 
     private val _attachedFileName = MutableStateFlow<String?>(null)
     val attachedFileName = _attachedFileName.asStateFlow()
+
+    private val _isCanvasMode = MutableStateFlow(false)
+    val isCanvasMode: StateFlow<Boolean> = _isCanvasMode.asStateFlow()
+
+    fun toggleCanvasMode(enabled: Boolean = !_isCanvasMode.value) {
+        _isCanvasMode.value = enabled
+    }
+
+    fun setCanvasMode(enabled: Boolean) {
+        _isCanvasMode.value = enabled
+    }
 
     @OptIn(kotlinx.coroutines.FlowPreview::class)
     val searchResults: StateFlow<List<ChatMessage>> = _searchQuery
@@ -185,6 +197,15 @@ class ChatViewModel @Inject constructor(
     }
 
     fun sendMessage(content: String, context: android.content.Context? = null) {
+        val isCanvas = _isCanvasMode.value
+        if (isCanvas) {
+            _isCanvasMode.value = false
+            val canvasPrompt = PromptBuilder.buildCanvasPrompt(content)
+            val uiDisplay = "🪄 $content"
+            processMessage(uiDisplay, canvasPrompt, null, null, isCanvas = true)
+            return
+        }
+
         if (_attachedFileUri.value != null && context != null) {
             viewModelScope.launch {
                 val fileUri = _attachedFileUri.value!!
@@ -225,7 +246,13 @@ class ChatViewModel @Inject constructor(
         processMessage(uiDisplay, actualPrompt)
     }
 
-    private fun processMessage(uiDisplay: String, actualPrompt: String, pdfContext: String? = null, fileUri: String? = null) {
+    private fun processMessage(
+        uiDisplay: String, 
+        actualPrompt: String, 
+        pdfContext: String? = null, 
+        fileUri: String? = null,
+        isCanvas: Boolean = false
+    ) {
         if (uiDisplay.isBlank() || _isGenerating.value) return
 
         viewModelScope.launch {
@@ -339,7 +366,35 @@ class ChatViewModel @Inject constructor(
                 }
                 
                 val finalCleanResponse = GemmaPromptFormatter.sanitizeOutput(fullResponse)
-                chatDao.insertMessage(ChatMessage(sessionId = sessionId, role = "assistant", content = finalCleanResponse))
+                
+                if (isCanvas || (finalCleanResponse.contains("\"slides\"") && finalCleanResponse.contains("\"bullets\""))) {
+                    var jsonStr = finalCleanResponse.trim()
+                    if (jsonStr.startsWith("```json")) jsonStr = jsonStr.substringAfter("```json")
+                    else if (jsonStr.startsWith("```")) jsonStr = jsonStr.substringAfter("```")
+                    if (jsonStr.endsWith("```")) jsonStr = jsonStr.substringBeforeLast("```")
+                    jsonStr = jsonStr.trim()
+
+                    val title = try {
+                        JSONObject(jsonStr).optString("title", "AI Canvas Presentation")
+                    } catch (_: Exception) {
+                        "AI Canvas Presentation"
+                    }
+
+                    chatDao.insertMessage(
+                        ChatMessage(
+                            sessionId = sessionId,
+                            role = "assistant",
+                            content = "Here is your generated AI Canvas presentation:",
+                            artifactType = "PPTX",
+                            artifactTitle = title,
+                            artifactData = jsonStr,
+                            artifactStatus = "READY"
+                        )
+                    )
+                } else {
+                    chatDao.insertMessage(ChatMessage(sessionId = sessionId, role = "assistant", content = finalCleanResponse))
+                }
+                
                 _streamingMessage.value = null
 
                 if (isFirstTurn) {

@@ -256,28 +256,6 @@ fun DrawerContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Surface(
-                onClick = { onNavigate("canvas") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 2.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = Color.Transparent
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Slideshow, contentDescription = null, tint = Color.Cyan)
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text("AI Canvas", color = Color.White)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            
             Text(
                 "Recents", 
                 color = Color.White, 

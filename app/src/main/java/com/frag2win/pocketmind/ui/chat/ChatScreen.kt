@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.frag2win.pocketmind.data.local.ChatMessage
+import com.frag2win.pocketmind.data.local.getArtifactPayload
 import androidx.compose.foundation.text.selection.SelectionContainer
 import com.mikepenz.markdown.m3.Markdown
 
@@ -60,6 +61,7 @@ fun ChatScreenRoot(
     val streamingMessage by viewModel.streamingMessage.collectAsState()
     val attachedFileName by viewModel.attachedFileName.collectAsState()
     val pdfFile by viewModel.pdfExportStatus.collectAsState()
+    val isCanvasMode by viewModel.isCanvasMode.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
 
     val filePicker = rememberLauncherForActivityResult(
@@ -109,9 +111,12 @@ fun ChatScreenRoot(
         isModelLoading = isModelLoading,
         streamingMessage = streamingMessage,
         attachedFileName = attachedFileName,
+        isCanvasMode = isCanvasMode,
         onSendMessage = { viewModel.sendMessage(it, context) },
         onAttachFile = { filePicker.launch("application/pdf") },
         onDetachFile = { viewModel.detachFile() },
+        onToggleCanvasMode = { viewModel.toggleCanvasMode() },
+        onDisableCanvasMode = { viewModel.setCanvasMode(false) },
         onOpenFile = { uriString ->
             try {
                 val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
@@ -147,9 +152,12 @@ fun ChatScreen(
     isModelLoading: Boolean,
     streamingMessage: String?,
     attachedFileName: String?,
+    isCanvasMode: Boolean = false,
     onSendMessage: (String) -> Unit,
     onAttachFile: () -> Unit,
     onDetachFile: () -> Unit,
+    onToggleCanvasMode: () -> Unit = {},
+    onDisableCanvasMode: () -> Unit = {},
     onOpenFile: (String) -> Unit,
     onExportPdf: (ChatMessage) -> Unit,
     onClearChat: () -> Unit,
@@ -158,6 +166,7 @@ fun ChatScreen(
     modifier: Modifier = Modifier
 ) {
     var inputText by remember { mutableStateOf("") }
+    var showAttachmentMenu by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     // 1. & 2. Performance Fix: Use reverseLayout to anchor growth to the bottom.
@@ -273,6 +282,26 @@ fun ChatScreen(
             color = Color.Transparent
         ) {
             Column {
+                if (isCanvasMode) {
+                    AssistChip(
+                        onClick = {},
+                        label = { Text("🪄 Canvas Mode", maxLines = 1, fontWeight = FontWeight.Bold) },
+                        trailingIcon = {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Disable Canvas Mode",
+                                modifier = Modifier.size(18.dp).clickable { onDisableCanvasMode() }
+                            )
+                        },
+                        modifier = Modifier.padding(bottom = 8.dp, start = 8.dp),
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = Color(0xFF22D3EE).copy(alpha = 0.2f),
+                            labelColor = Color(0xFF22D3EE)
+                        ),
+                        border = BorderStroke(1.dp, Color(0xFF22D3EE).copy(alpha = 0.5f))
+                    )
+                }
+
                 if (attachedFileName != null) {
                     AssistChip(
                         onClick = {},
@@ -312,12 +341,49 @@ fun ChatScreen(
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = onAttachFile) {
-                        Icon(
-                            Icons.Default.AttachFile,
-                            contentDescription = "Attach PDF",
-                            tint = inputIconColor
-                        )
+                    Box {
+                        IconButton(onClick = { showAttachmentMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Attach or Canvas",
+                                tint = inputIconColor
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showAttachmentMenu,
+                            onDismissRequest = { showAttachmentMenu = false },
+                            modifier = Modifier.background(if (isDark) Color(0xFF1E1F20) else Color(0xFFF1F5F9))
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Upload files", color = inputTextColor) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.AttachFile,
+                                        contentDescription = null,
+                                        tint = inputIconColor
+                                    )
+                                },
+                                onClick = {
+                                    showAttachmentMenu = false
+                                    onAttachFile()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Canvas Mode", color = inputTextColor, fontWeight = FontWeight.SemiBold) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = Color(0xFF22D3EE)
+                                    )
+                                },
+                                onClick = {
+                                    showAttachmentMenu = false
+                                    onToggleCanvasMode()
+                                }
+                            )
+                        }
                     }
 
                     TextField(
@@ -586,6 +652,12 @@ fun MessageBubble(
                     )
                 }
             } else {
+                val artifact = remember(message) { message.getArtifactPayload() }
+                if (artifact != null) {
+                    ArtifactCard(artifact = artifact)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
                 if (isStreaming || message.content == "Thinking...") {
                     // PERFORMANCE & UI FIX: Use Stream-Safe Markdown parsing.
                     // This prevents raw delimiters (**, ##) from flashing during generation.
