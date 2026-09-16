@@ -428,66 +428,68 @@ class ChatViewModel @Inject constructor(
                 }
 
                 var attachedSearchResults: List<SearchResult>? = null
-                
+                val isOnline = NetworkUtils.isOnline(appContext)
+                val requiresSearch = if (pdfContext == null) isSearchRequired(actualPrompt) else false
+
+                Log.d("PocketMindRAG", "actualPrompt: $actualPrompt")
+                Log.d("PocketMindRAG", "isOnline: $isOnline")
+                Log.d("PocketMindRAG", "requiresSearch: $requiresSearch")
+
                 // Handle PDF Context injection or Web Search
                 if (pdfContext != null) {
                     // Canonical user message is kept in content; searchResults is null
                     chatDao.updateMessageContentAndSearch(userMessageId.toInt(), actualPrompt, null)
-                } else {
-                    val isOnline = NetworkUtils.isOnline(appContext)
-                    if (!isOnline) {
-                        _streamingMessage.value = "Offline — using local knowledge"
-                    } else {
-                        val requiresSearch = isSearchRequired(actualPrompt)
-                        if (requiresSearch) {
-                            _streamingMessage.value = "Searching the web..."
+                } else if (!isOnline && requiresSearch) {
+                    _streamingMessage.value = "Offline — using local knowledge"
+                } else if (requiresSearch) {
+                    _streamingMessage.value = "Searching the web..."
+                    try {
+                        var searchQuery = normalizeSearchQuery(actualPrompt)
+                        if (priorHistory.isNotEmpty()) {
+                            val formattedTurns = priorHistory.takeLast(3).joinToString("\n") { msg ->
+                                val roleName = if (msg.role == "user") "User" else "Assistant"
+                                "$roleName: ${stripScaffolding(msg.content)}"
+                            }
+                            val rewritePrompt = """
+                                Based on the conversation history below and the user's latest message, condense and rewrite the user's request into a single standalone search query for Google.
+                                Preserve all key topics, locations, dates, and quantitative constraints (e.g. 'top 5', 'India', 'Mumbai', 'sources').
+                                Output ONLY the single-line search query string with no explanation, formatting, or quotes.
+
+                                History:
+                                $formattedTurns
+
+                                Latest User Message: ${stripScaffolding(actualPrompt)}
+
+                                Standalone Search Query:
+                            """.trimIndent()
                             try {
-                                var searchQuery = normalizeSearchQuery(actualPrompt)
-                                if (priorHistory.isNotEmpty()) {
-                                    val formattedTurns = priorHistory.takeLast(3).joinToString("\n") { msg ->
-                                        val roleName = if (msg.role == "user") "User" else "Assistant"
-                                        "$roleName: ${stripScaffolding(msg.content)}"
-                                    }
-                                    val rewritePrompt = """
-                                        Based on the conversation history below and the user's latest message, condense and rewrite the user's request into a single standalone search query for Google.
-                                        Output ONLY the single-line search query string with no explanation, formatting, or quotes.
-
-                                        History:
-                                        $formattedTurns
-
-                                        Latest User Message: ${stripScaffolding(actualPrompt)}
-
-                                        Standalone Search Query:
-                                    """.trimIndent()
-                                    try {
-                                        val rewritten = inferenceEngine.generate(rewritePrompt).trim().replace("\"", "").replace("\n", " ")
-                                        if (rewritten.isNotBlank()) {
-                                            searchQuery = normalizeSearchQuery(rewritten)
-                                        }
-                                    } catch (_: Exception) {
-                                        // Fallback to un-rewritten query
-                                    }
-                                }
-
-                                Log.d("PocketMindRAG", "actualPrompt: $actualPrompt")
-                                Log.d("PocketMindRAG", "normalizedSearchQuery: $searchQuery")
-
-                                val searchResults = searchRepository.performWebSearch(searchQuery)
-                                Log.d("PocketMindRAG", "searchResults count: ${searchResults.size}")
-
-                                if (searchResults.isNotEmpty()) {
-                                    attachedSearchResults = searchResults
-                                    // Canonical user prompt remains in content; searchResults attached separately in Room DB
-                                    chatDao.updateMessageContentAndSearch(userMessageId.toInt(), actualPrompt, attachedSearchResults)
-                                    _streamingMessage.value = "Analyzing web results..."
-                                } else {
-                                    _streamingMessage.value = "No relevant web results found. Falling back to local knowledge..."
+                                val rewritten = inferenceEngine.generate(rewritePrompt).trim().replace("\"", "").replace("\n", " ")
+                                if (rewritten.isNotBlank()) {
+                                    searchQuery = normalizeSearchQuery(rewritten)
                                 }
                             } catch (e: Exception) {
-                                e.printStackTrace()
-                                _streamingMessage.value = "Web search failed. Falling back to local knowledge..."
+                                Log.d("PocketMindRAG", "Query rewriter failed: ${e.message}")
                             }
                         }
+
+                        Log.d("PocketMindRAG", "searchQuery: $searchQuery")
+
+                        val searchResults = searchRepository.performWebSearch(searchQuery)
+                        Log.d("PocketMindRAG", "searchResults count: ${searchResults.size}")
+
+                        if (searchResults.isNotEmpty()) {
+                            attachedSearchResults = searchResults
+                            // Canonical user prompt remains in content; searchResults attached separately in Room DB
+                            chatDao.updateMessageContentAndSearch(userMessageId.toInt(), actualPrompt, attachedSearchResults)
+                            _streamingMessage.value = "Analyzing web results..."
+                        } else {
+                            Log.d("PocketMindRAG", "Search returned empty results for query: $searchQuery")
+                            _streamingMessage.value = "No relevant web results found. Falling back to local knowledge..."
+                        }
+                    } catch (e: Exception) {
+                        Log.d("PocketMindRAG", "Search execution exception: ${e.message}")
+                        e.printStackTrace()
+                        _streamingMessage.value = "Web search failed. Falling back to local knowledge..."
                     }
                 }
                 
@@ -508,6 +510,22 @@ class ChatViewModel @Inject constructor(
                         searchResults = attachedSearchResults,
                         displayName = modelPreferences.getDisplayName()
                     )
+
+                    requiresSearch && isOnline -> """
+                        System: The user requested real-time web information ('$actualPrompt'), but web search retrieval was unable to find relevant live results at this moment.
+                        Inform the user clearly that current live web results could not be retrieved right now.
+                        Do NOT ask the user to provide text to summarize.
+                        Do NOT fabricate headlines or pretend to have real-time information.
+                        
+                        User Prompt: $actualPrompt
+                    """.trimIndent()
+
+                    requiresSearch && !isOnline -> """
+                        System: The user requested real-time web information ('$actualPrompt'), but the device is currently offline.
+                        Inform the user clearly that live web retrieval is unavailable offline, and briefly answer using only general offline knowledge if applicable.
+                        
+                        User Prompt: $actualPrompt
+                    """.trimIndent()
 
                     else -> actualPrompt
                 }
