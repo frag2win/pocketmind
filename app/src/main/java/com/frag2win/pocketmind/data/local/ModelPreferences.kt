@@ -56,14 +56,6 @@ class ModelPreferences @Inject constructor(
         prefs.edit().putString(KEY_TAVILY_API_KEY, key).apply()
     }
 
-    fun getGitHubToken(): String? {
-        return prefs.getString(KEY_GITHUB_TOKEN, null)
-    }
-
-    fun setGitHubToken(token: String) {
-        prefs.edit().putString(KEY_GITHUB_TOKEN, token).apply()
-    }
-
     fun getDisplayName(): String {
         return prefs.getString(KEY_DISPLAY_NAME, "User") ?: "User"
     }
@@ -81,7 +73,6 @@ class ModelPreferences @Inject constructor(
         private const val KEY_AUTO_SELECT = "auto_select"
         private const val KEY_HF_TOKEN = "hf_token"
         private const val KEY_TAVILY_API_KEY = "tavily_api_key"
-        private const val KEY_GITHUB_TOKEN = "github_token"
         private const val KEY_DISPLAY_NAME = "display_name"
     }
 }

@@ -1,5 +1,4 @@
 package com.frag2win.pocketmind
-// Dummy comment to trigger GitHub Action
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -35,7 +34,6 @@ import androidx.navigation.compose.rememberNavController
 import com.frag2win.pocketmind.ui.canvas.CanvasScreen
 import com.frag2win.pocketmind.ui.canvas.CanvasViewModel
 import com.frag2win.pocketmind.ui.chat.ChatScreenRoot
-import com.frag2win.pocketmind.ui.github.GitHubScreen
 import com.frag2win.pocketmind.ui.settings.SettingsScreen
 import com.frag2win.pocketmind.ui.theme.PocketMindTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -131,27 +129,6 @@ class MainActivity : ComponentActivity() {
                                 CanvasScreen(
                                     viewModel = canvasViewModel,
                                     onNavigateBack = { navController.popBackStack() }
-                                )
-                            }
-                            composable("github") {
-                                GitHubScreen(
-                                    onAnalyzeFile = { path, content ->
-                                        viewModel.sendGitHubMessage(
-                                            uiDisplay = "Analyze file: $path",
-                                            actualPrompt = com.frag2win.pocketmind.domain.inference.PromptBuilder.buildCodeAnalysisPrompt(path, content)
-                                        )
-                                        navController.navigate("chat")
-                                    },
-                                    onAnalyzePR = { owner, repo, num, diff ->
-                                        viewModel.sendGitHubMessage(
-                                            uiDisplay = "Summarize PR #$num for $owner/$repo",
-                                            actualPrompt = com.frag2win.pocketmind.domain.inference.PromptBuilder.buildPRSummaryPrompt(owner, repo, num, diff)
-                                        )
-                                        navController.navigate("chat")
-                                    },
-                                    onNavigateToSettings = {
-                                        navController.navigate("settings")
-                                    }
                                 )
                             }
                         }

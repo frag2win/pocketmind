@@ -1,7 +1,6 @@
 package com.frag2win.pocketmind.di
 
 import com.frag2win.pocketmind.data.local.ModelPreferences
-import com.frag2win.pocketmind.data.remote.GitHubService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -42,15 +41,5 @@ object NetworkModule {
             .writeTimeout(5, TimeUnit.MINUTES)
             .addInterceptor(authInterceptor)
             .build()
-    }
-
-    @Provides
-    @Singleton
-    fun provideGitHubService(): GitHubService {
-        return Retrofit.Builder()
-            .baseUrl("https://api.github.com/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(GitHubService::class.java)
     }
 }

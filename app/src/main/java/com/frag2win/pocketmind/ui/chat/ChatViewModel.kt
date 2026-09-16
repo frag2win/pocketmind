@@ -341,10 +341,6 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    fun sendGitHubMessage(uiDisplay: String, actualPrompt: String) {
-        processMessage(uiDisplay, actualPrompt)
-    }
-
     private fun processMessage(
         uiDisplay: String, 
         actualPrompt: String, 

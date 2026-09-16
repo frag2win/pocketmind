@@ -129,18 +129,7 @@ The model variant (E2B INT4 / E2B / E4B) is automatically selected based on the 
 - Export as .pptx compatible with Google Slides / PowerPoint
 - Library: Apache POI (Android port)
 
-### 6.5 GitHub Integration
-- Personal Access Token login (stored in EncryptedSharedPreferences)
-- Browse repositories, branches, files
-- AI-powered features (all processed locally by Gemma):
-  - Summarize Pull Requests
-  - Explain code files
-  - Generate commit messages
-  - Draft README.md from codebase
-  - Review code for bugs / improvements
-- API: GitHub REST API v3 (internet required; AI inference stays local)
-
-### 6.6 Figma Integration *(Major Project Phase)*
+### 6.5 Figma Integration *(Major Project Phase)*
 - Figma Personal Access Token (stored locally)
 - Fetch design files and component trees
 - AI-powered features:

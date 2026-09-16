@@ -15,6 +15,9 @@ All notable changes to the PocketMind project will be documented in this file.
   
   ### Changed
   
+  ### Removed
+- **REMOVAL: GitHub Integration Removed**: Removed all GitHub-specific components, including `GitHubService`, `GitHubRepository`, `GitHubScreen`, `GitHubViewModel`, Personal Access Token settings, GitHub prompt helpers, and navigation routes.
+  
   ## [Unreleased] - September 11, 2026
   
   ### Added
