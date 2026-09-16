@@ -8,6 +8,7 @@ import com.frag2win.pocketmind.data.local.ChatDao
 import com.frag2win.pocketmind.data.local.ChatMessage
 import com.frag2win.pocketmind.data.local.ModelPreferences
 import com.frag2win.pocketmind.data.inference.implementations.LiteRTInferenceEngine
+import com.frag2win.pocketmind.data.repository.SearchResult
 import com.frag2win.pocketmind.data.repository.SearchRepository
 import com.frag2win.pocketmind.domain.docs.PdfGenerator
 import com.frag2win.pocketmind.domain.inference.GemmaPromptFormatter
@@ -250,13 +251,48 @@ class ChatViewModel @Inject constructor(
         return cleanQuery.length > 8 && cleanResp.length in 5..30 && !cleanResp.contains("\n")
     }
 
-    private fun isSearchRequired(query: String): Boolean {
-        val temporalKeywords = listOf(
-            "today", "latest", "current", "news", "weather", 
-            "2024", "2025", "now", "recent", "price", "stock",
+    private fun stripScaffolding(text: String): String {
+        var clean = text
+        if (clean.startsWith("__PDF_ATTACHED_FILE__:")) {
+            clean = clean.substringAfter(":").substringAfter(" ")
+        }
+        return clean
+            .replace("SYSTEM: You are a document analysis assistant. Use the text below to answer.", "")
+            .replace("EXTRACTED TEXT:", "")
+            .replace("USER QUESTION:", "")
+            .replace("🪄", "")
+            .trim()
+    }
+
+    private suspend fun isSearchRequired(query: String): Boolean {
+        val clean = stripScaffolding(query)
+        if (clean.isBlank()) return false
+
+        // 1. Fast-path keyword check
+        val fastKeywords = listOf(
+            "today", "latest", "current", "news", "weather",
+            "2024", "2025", "2026", "now", "recent", "price", "stock",
             "market", "time", "date"
         )
-        return temporalKeywords.any { query.contains(it, ignoreCase = true) }
+        if (fastKeywords.any { clean.contains(it, ignoreCase = true) }) {
+            return true
+        }
+
+        // 2. Single-token YES/NO model classifier prompt
+        return try {
+            val classifierPrompt = """
+                Does the following user query require real-time web search or up-to-date information not available offline?
+                Answer ONLY with YES or NO.
+
+                Query: "$clean"
+                Answer:
+            """.trimIndent()
+
+            val response = inferenceEngine.generate(classifierPrompt).trim().uppercase()
+            response.startsWith("YES")
+        } catch (_: Exception) {
+            false
+        }
     }
 
     fun sendMessage(content: String, context: android.content.Context? = null) {
@@ -333,6 +369,10 @@ class ChatViewModel @Inject constructor(
                     id.toInt()
                 }
 
+                // 1. Fetch prior history BEFORE inserting current user turn into Room DB
+                val priorHistory = chatDao.getMessagesForSessionDirect(sessionId)
+
+                var attachedSearchResults: List<SearchResult>? = null
                 var processedContent = actualPrompt
                 
                 // Handle PDF Context injection
@@ -355,8 +395,36 @@ class ChatViewModel @Inject constructor(
                         if (requiresSearch) {
                             _streamingMessage.value = "Searching the web..."
                             try {
-                                val searchResults = searchRepository.performWebSearch(actualPrompt)
+                                var searchQuery = stripScaffolding(actualPrompt)
+                                if (priorHistory.isNotEmpty()) {
+                                    val formattedTurns = priorHistory.takeLast(3).joinToString("\n") { msg ->
+                                        val roleName = if (msg.role == "user") "User" else "Assistant"
+                                        "$roleName: ${stripScaffolding(msg.content)}"
+                                    }
+                                    val rewritePrompt = """
+                                        Based on the conversation history below and the user's latest message, condense and rewrite the user's request into a single standalone search query for Google.
+                                        Output ONLY the single-line search query string with no explanation, formatting, or quotes.
+
+                                        History:
+                                        $formattedTurns
+
+                                        Latest User Message: ${stripScaffolding(actualPrompt)}
+
+                                        Standalone Search Query:
+                                    """.trimIndent()
+                                    try {
+                                        val rewritten = inferenceEngine.generate(rewritePrompt).trim().replace("\"", "").replace("\n", " ")
+                                        if (rewritten.isNotBlank()) {
+                                            searchQuery = rewritten
+                                        }
+                                    } catch (_: Exception) {
+                                        // Fallback to un-rewritten query
+                                    }
+                                }
+
+                                val searchResults = searchRepository.performWebSearch(searchQuery)
                                 if (searchResults.isNotEmpty()) {
+                                    attachedSearchResults = searchResults
                                     processedContent = PromptBuilder.buildRAGPrompt(
                                         query = actualPrompt,
                                         searchResults = searchResults,
@@ -374,9 +442,6 @@ class ChatViewModel @Inject constructor(
                     }
                 }
 
-                // 1. Fetch prior history BEFORE inserting current user turn into Room DB
-                val priorHistory = chatDao.getMessagesForSessionDirect(sessionId)
-
                 // 2. Add user message to DB with the FULL processed content for the model
                 // and the UI display string for the user.
                 chatDao.insertMessage(
@@ -385,7 +450,8 @@ class ChatViewModel @Inject constructor(
                         role = "user", 
                         content = processedContent,
                         displayContent = uiDisplay,
-                        fileUri = fileUri
+                        fileUri = fileUri,
+                        searchResults = attachedSearchResults
                     )
                 )
                 
