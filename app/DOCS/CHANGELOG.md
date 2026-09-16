@@ -10,6 +10,8 @@ All notable changes to the PocketMind project will be documented in this file.
 - **FEATURE: Hybrid Search Classifier & SearXNG Scraping**: Upgraded `ChatViewModel` with hybrid fast-path keyword and model classifier checks, standalone query rewriter, LRU cache (~20 entries, 10 min TTL), SearXNG public instance search backend, parallelized DDG scraping with `Readability4J`.
   
   ### Fixed
+- **BUG & UX: Immediate First-Turn User Message Insertion**: Updated `ChatViewModel.processMessage` to commit the user message to Room DB immediately upon submission, preventing UI delay while search/RAG operations execute in the background.
+- **BUG & RAG: Web Search Content Quality & Failure Suppression**: Sanitized DuckDuckGo fallback snippets in `SearchRepository` by removing `[Note: Full page scrape failed]` debug tags, and updated `PromptBuilder.buildRAGPrompt` instructions to enforce direct factual headline summarization without discussing search mechanics.
 - **BUG & UX: User Scroll-Intent Tracking & Atomic Stream Transition**: Implemented `userHasScrolledAway` state tracking via `LazyListState` drag interactions and true bottom offsets (`firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset == 0`), keyed scroll resets on `sessionId` change (`LaunchedEffect(sessionId)`), added WhatsApp/Slack-style "Scroll to bottom" FAB, and eliminated room insertion vs streaming placeholder double-rendering by awaiting message Flow ID presence via `awaitMessageInFlow()` before clearing `_streamingMessage`.
 - Persistent LiteRT Conversation, cancellation safety, and response guardrails
   

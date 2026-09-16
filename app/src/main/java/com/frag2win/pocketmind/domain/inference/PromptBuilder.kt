@@ -9,28 +9,29 @@ object PromptBuilder {
         val contextBuilder = StringBuilder()
         
         searchResults.forEachIndexed { index, result ->
-            contextBuilder.append("Source ${index + 1}: ${result.snippet} (URL: ${result.url})\n")
+            val cleanSnippet = result.snippet.replace("[Note: Full page scrape failed]", "").trim()
+            contextBuilder.append("Source ${index + 1} [${result.title}]: $cleanSnippet (URL: ${result.url})\n\n")
         }
 
         val effectiveName = if (displayName.isBlank()) "User" else displayName
         val systemInstruction = """
-            You are PocketMind, an offline-first AI assistant running locally on Android. You are talking to $effectiveName.
+            You are PocketMind, a knowledgeable AI assistant. You are talking to $effectiveName.
             Today's date is ${LocalDate.now()}.
-            Below is the [WEB CONTEXT] containing REAL-TIME information from the internet. 
-            Use this context to answer $effectiveName's request accurately.
+            Below is the [WEB CONTEXT] containing REAL-TIME information retrieved from current web search results.
+            Use these search results to answer $effectiveName's request directly with specific facts, headlines, or details.
             
-            IMPORTANT:
-            1. DO NOT say you don't have access to real-time data. You HAVE access via the context below.
-            2. If the context contains news or stock prices, report them as current.
-            3. Synthesize the facts from all sources into a cohesive answer.
-            4. If a specific source is mentioned, you can refer to it.
+            STRICT INSTRUCTIONS:
+            1. Summarize the actual news, facts, and headlines provided in the sources below.
+            2. Do NOT discuss search engines, technical errors, or page scraping mechanics.
+            3. Do NOT say you don't have real-time information — report the facts from the sources as current news.
+            4. Synthesize facts from all sources into a clear, concise, well-structured response.
         """.trimIndent()
 
         return """
             $systemInstruction
             
             [START OF WEB CONTEXT]
-            ${contextBuilder.toString()}
+            ${contextBuilder.toString().trim()}
             [END OF WEB CONTEXT]
             
             User Prompt: $query

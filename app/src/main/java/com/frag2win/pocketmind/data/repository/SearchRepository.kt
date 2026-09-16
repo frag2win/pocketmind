@@ -149,6 +149,8 @@ class SearchRepository @Inject constructor() {
                         link = URLDecoder.decode(link.substringAfter("uddg=").substringBefore("&"), "UTF-8")
                     }
 
+                    val fallbackSnippet = element.select(".result__snippet").text().trim()
+
                     val deepSnippet = try {
                         val pageDoc = Jsoup.connect(link)
                             .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
@@ -162,12 +164,12 @@ class SearchRepository @Inject constructor() {
                         val cleanedText = parsedText.replace(Regex("\\s+"), " ").trim()
 
                         if (cleanedText.length < 150) {
-                            pageDoc.text().take(1500)
+                            fallbackSnippet.ifBlank { pageDoc.text().take(1200) }
                         } else {
                             cleanedText.take(1500)
                         }
                     } catch (e: Exception) {
-                        element.select(".result__snippet").text() + " [Note: Full page scrape failed]"
+                        fallbackSnippet
                     }
 
                     if (title.isNotBlank() && deepSnippet.isNotBlank()) {

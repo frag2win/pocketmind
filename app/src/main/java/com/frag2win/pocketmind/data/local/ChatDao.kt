@@ -3,12 +3,16 @@ package com.frag2win.pocketmind.data.local
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import com.frag2win.pocketmind.data.repository.SearchResult
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ChatDao {
     @Insert
     suspend fun insertMessage(message: ChatMessage): Long
+
+    @Query("UPDATE chat_messages SET content = :content, searchResults = :searchResults WHERE id = :id")
+    suspend fun updateMessageContentAndSearch(id: Int, content: String, searchResults: List<SearchResult>?)
 
     @Query("SELECT * FROM chat_messages WHERE sessionId = :sessionId ORDER BY timestamp ASC")
     fun getMessagesForSession(sessionId: Int): Flow<List<ChatMessage>>

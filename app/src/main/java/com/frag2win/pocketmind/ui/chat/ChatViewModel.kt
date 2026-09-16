@@ -368,10 +368,31 @@ class ChatViewModel @Inject constructor(
                 // 1. Fetch prior history BEFORE inserting current user turn into Room DB
                 val priorHistory = chatDao.getMessagesForSessionDirect(sessionId)
 
+                // 2. IMMEDIATELY commit user message to Room DB so it appears instantly in the UI
+                val userMessageId = chatDao.insertMessage(
+                    ChatMessage(
+                        sessionId = sessionId, 
+                        role = "user", 
+                        content = actualPrompt,
+                        displayContent = uiDisplay,
+                        fileUri = fileUri
+                    )
+                )
+
+                // Update session title with temporary snippet if it was the first message
+                if (isFirstTurn) {
+                    val displayTitle = if (uiDisplay.startsWith("__PDF_ATTACHED_FILE__:")) {
+                        uiDisplay.substringAfter(":").substringAfter(" ").take(30)
+                    } else {
+                        uiDisplay.take(30)
+                    }
+                    chatDao.updateSessionTitle(sessionId, "$displayTitle...")
+                }
+
                 var attachedSearchResults: List<SearchResult>? = null
                 var processedContent = actualPrompt
                 
-                // Handle PDF Context injection
+                // Handle PDF Context injection or Web Search
                 if (pdfContext != null) {
                     processedContent = """
                         SYSTEM: You are a document analysis assistant. Use the text below to answer.
@@ -382,6 +403,7 @@ class ChatViewModel @Inject constructor(
                         USER QUESTION:
                         $actualPrompt
                     """.trimIndent()
+                    chatDao.updateMessageContentAndSearch(userMessageId.toInt(), processedContent, null)
                 } else {
                     val isOnline = NetworkUtils.isOnline(appContext)
                     if (!isOnline) {
@@ -426,6 +448,8 @@ class ChatViewModel @Inject constructor(
                                         searchResults = searchResults,
                                         displayName = modelPreferences.getDisplayName()
                                     )
+                                    // Update the same user message in Room DB with RAG prompt and search results
+                                    chatDao.updateMessageContentAndSearch(userMessageId.toInt(), processedContent, attachedSearchResults)
                                     _streamingMessage.value = "Analyzing web results..."
                                 } else {
                                     _streamingMessage.value = "No relevant web results found. Falling back to local knowledge..."
@@ -437,19 +461,6 @@ class ChatViewModel @Inject constructor(
                         }
                     }
                 }
-
-                // 2. Add user message to DB with the FULL processed content for the model
-                // and the UI display string for the user.
-                chatDao.insertMessage(
-                    ChatMessage(
-                        sessionId = sessionId, 
-                        role = "user", 
-                        content = processedContent,
-                        displayContent = uiDisplay,
-                        fileUri = fileUri,
-                        searchResults = attachedSearchResults
-                    )
-                )
                 
                 // Update session title with temporary snippet if it was the first message
                 if (isFirstTurn) {
