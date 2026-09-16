@@ -78,6 +78,28 @@ class SearchRepository @Inject constructor() {
         return@withContext freeResults
     }
 
+    private fun isQualitySnippet(title: String, snippet: String): Boolean {
+        val cleanSnippet = snippet.trim()
+
+        if (cleanSnippet.length < 25) return false
+
+        val lower = cleanSnippet.lowercase()
+
+        // Reject navigation/landing-page labels or search engine metadata
+        val metadataPhrases = listOf(
+            "google news", "explore top news stories", "top stories", "overview",
+            "search engine", "sign in", "all rights reserved", "cookie policy"
+        )
+        if (metadataPhrases.any { lower == it || lower == "$it." }) return false
+
+        // Reject question-only snippets that end in '?' and have no factual sentences
+        if (cleanSnippet.endsWith("?") && cleanSnippet.length < 65 && !cleanSnippet.contains(".")) {
+            return false
+        }
+
+        return true
+    }
+
     private fun performSearXNGSearch(query: String): List<SearchResult> {
         val instances = listOf(
             "https://searx.be/search?q=%s&format=json",
@@ -106,13 +128,14 @@ class SearchRepository @Inject constructor() {
                     val resultsArray = jsonObj.optJSONArray("results") ?: return@use
 
                     val results = mutableListOf<SearchResult>()
-                    for (i in 0 until minOf(resultsArray.length(), 3)) {
+                    for (i in 0 until minOf(resultsArray.length(), 5)) {
                         val item = resultsArray.getJSONObject(i)
                         val title = item.optString("title", "")
                         val snippet = item.optString("content", item.optString("snippet", ""))
                         val url = item.optString("url", "")
-                        if (title.isNotBlank() && snippet.isNotBlank()) {
+                        if (title.isNotBlank() && isQualitySnippet(title, snippet)) {
                             results.add(SearchResult(title, snippet, url))
+                            if (results.size >= 3) break
                         }
                     }
                     if (results.isNotEmpty()) {
@@ -136,7 +159,7 @@ class SearchRepository @Inject constructor() {
                 .get()
 
             val results = doc.select(".result")
-            val topResults = results.take(2)
+            val topResults = results.take(3)
 
             val deferredResults = topResults.map { element ->
                 async(Dispatchers.IO) {
@@ -164,7 +187,7 @@ class SearchRepository @Inject constructor() {
                         val cleanedText = parsedText.replace(Regex("\\s+"), " ").trim()
 
                         if (cleanedText.length < 150) {
-                            fallbackSnippet.ifBlank { pageDoc.text().take(1200) }
+                            if (isQualitySnippet(title, fallbackSnippet)) fallbackSnippet else pageDoc.text().take(1200)
                         } else {
                             cleanedText.take(1500)
                         }
@@ -172,7 +195,7 @@ class SearchRepository @Inject constructor() {
                         fallbackSnippet
                     }
 
-                    if (title.isNotBlank() && deepSnippet.isNotBlank()) {
+                    if (title.isNotBlank() && deepSnippet.isNotBlank() && isQualitySnippet(title, deepSnippet)) {
                         SearchResult(title, deepSnippet, link)
                     } else null
                 }

@@ -2,6 +2,7 @@ package com.frag2win.pocketmind.ui.chat
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.frag2win.pocketmind.data.local.ChatDao
@@ -264,6 +265,43 @@ class ChatViewModel @Inject constructor(
             .trim()
     }
 
+    private fun normalizeSearchQuery(query: String): String {
+        var clean = stripScaffolding(query).trim()
+        if (clean.isBlank()) return ""
+
+        val conversationalPrefixes = listOf(
+            "can you tell me about",
+            "tell me about",
+            "show me the",
+            "show me",
+            "what happened in the",
+            "what happened in",
+            "what happened",
+            "give me the",
+            "give me",
+            "search for",
+            "what is the",
+            "what is",
+            "tell me"
+        )
+
+        val lower = clean.lowercase()
+        for (prefix in conversationalPrefixes) {
+            if (lower.startsWith(prefix)) {
+                clean = clean.substring(prefix.length).trim()
+                break
+            }
+        }
+
+        clean = clean.removeSuffix("?").trim()
+
+        if (query.contains("news", ignoreCase = true) && !clean.contains("news", ignoreCase = true)) {
+            clean = "$clean news"
+        }
+
+        return clean.ifBlank { query }
+    }
+
     private suspend fun isSearchRequired(query: String): Boolean {
         val clean = stripScaffolding(query)
         if (clean.isBlank()) return false
@@ -404,7 +442,7 @@ class ChatViewModel @Inject constructor(
                         if (requiresSearch) {
                             _streamingMessage.value = "Searching the web..."
                             try {
-                                var searchQuery = stripScaffolding(actualPrompt)
+                                var searchQuery = normalizeSearchQuery(actualPrompt)
                                 if (priorHistory.isNotEmpty()) {
                                     val formattedTurns = priorHistory.takeLast(3).joinToString("\n") { msg ->
                                         val roleName = if (msg.role == "user") "User" else "Assistant"
@@ -424,14 +462,19 @@ class ChatViewModel @Inject constructor(
                                     try {
                                         val rewritten = inferenceEngine.generate(rewritePrompt).trim().replace("\"", "").replace("\n", " ")
                                         if (rewritten.isNotBlank()) {
-                                            searchQuery = rewritten
+                                            searchQuery = normalizeSearchQuery(rewritten)
                                         }
                                     } catch (_: Exception) {
                                         // Fallback to un-rewritten query
                                     }
                                 }
 
+                                Log.d("PocketMindRAG", "actualPrompt: $actualPrompt")
+                                Log.d("PocketMindRAG", "normalizedSearchQuery: $searchQuery")
+
                                 val searchResults = searchRepository.performWebSearch(searchQuery)
+                                Log.d("PocketMindRAG", "searchResults count: ${searchResults.size}")
+
                                 if (searchResults.isNotEmpty()) {
                                     attachedSearchResults = searchResults
                                     // Canonical user prompt remains in content; searchResults attached separately in Room DB
