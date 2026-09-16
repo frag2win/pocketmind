@@ -2,6 +2,7 @@ package com.frag2win.pocketmind.data.local
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.frag2win.pocketmind.data.repository.SearchResult
 
 enum class ArtifactType { PPTX, MARKDOWN, DOCX }
 enum class ArtifactStatus { GENERATING, READY, ERROR }
@@ -26,6 +27,7 @@ data class ChatMessage(
     val artifactTitle: String? = null,
     val artifactData: String? = null,
     val artifactStatus: String? = null,
+    val searchResults: List<SearchResult>? = null,
     val timestamp: Long = System.currentTimeMillis()
 )
 

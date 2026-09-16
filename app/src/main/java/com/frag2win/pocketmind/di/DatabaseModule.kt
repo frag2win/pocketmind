@@ -23,6 +23,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             "pocketmind_db"
         )
+        .addMigrations(AppDatabase.MIGRATION_6_7)
         .fallbackToDestructiveMigration()
         .build()
     }
