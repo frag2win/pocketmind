@@ -1,41 +1,64 @@
 package com.frag2win.pocketmind.domain.inference
 
 import com.frag2win.pocketmind.data.repository.SearchResult
+import java.net.URI
 import java.time.LocalDate
 
 object PromptBuilder {
+
+    fun extractDomain(url: String): String {
+        return try {
+            val uri = URI(url)
+            var host = uri.host ?: url
+            if (host.startsWith("www.")) {
+                host = host.substring(4)
+            }
+            host
+        } catch (_: Exception) {
+            url
+        }
+    }
 
     fun buildRAGPrompt(query: String, searchResults: List<SearchResult>, displayName: String = "User"): String {
         val contextBuilder = StringBuilder()
         
         searchResults.forEachIndexed { index, result ->
             val cleanSnippet = result.snippet.replace("[Note: Full page scrape failed]", "").trim()
-            contextBuilder.append("Source ${index + 1} [${result.title}]: $cleanSnippet (URL: ${result.url})\n\n")
+            val domain = extractDomain(result.url)
+            contextBuilder.append("""
+                SOURCE ${index + 1}
+                Title: ${result.title}
+                Source Domain: $domain
+                URL: ${result.url}
+                Content: $cleanSnippet
+            """.trimIndent()).append("\n\n")
         }
 
         val effectiveName = if (displayName.isBlank()) "User" else displayName
         val systemInstruction = """
             You are PocketMind, a knowledgeable AI assistant. You are talking to $effectiveName.
             Today's date is ${LocalDate.now()}.
-            Below is the [WEB CONTEXT] containing REAL-TIME evidence retrieved from current web search results.
+            Below is the [RETRIEVED WEB EVIDENCE] containing REAL-TIME facts retrieved from current web search results.
             
-            STRICT INSTRUCTIONS FOR RESPONSE GENERATION:
-            1. Answer $effectiveName's request directly using the facts, news headlines, and sources provided below.
-            2. If the user asked for a specific number of items (e.g. 'top 5'), provide up to that number using ONLY the verified retrieved results. Do NOT fabricate missing items.
-            3. Include the source publication name or URL for each item when available. Do NOT invent source URLs or claim sources not listed below.
-            4. Do NOT repeat or echo source titles, search questions, or web metadata as your final answer.
+            STRICT INSTRUCTIONS FOR RESPONSE SYNTHESIS:
+            1. Answer $effectiveName's request directly using ONLY the factual evidence provided in [RETRIEVED WEB EVIDENCE].
+            2. If the user asked for a specific number of items (e.g. 'top 5'), list up to that number of DISTINCT retrieved stories. If fewer distinct reliable stories are available in the context (e.g. 3 available), list ONLY the available distinct stories — NEVER fabricate additional stories or repeat the same story to meet a requested count.
+            3. For each story, format cleanly:
+               1. **Headline Title** — Source Domain (URL)
+                  Concise, factual description of the event.
+            4. Do NOT use meta-phrases like "Based on the provided text", "The provided text mentions", "In summary", or "According to the sources".
             5. Do NOT discuss search engines, technical errors, or page scraping mechanics.
-            6. Synthesize facts from all sources into a clear, cohesive, multi-sentence or bulleted summary.
+            6. Never fabricate headlines, facts, or source URLs not present in the retrieved evidence.
         """.trimIndent()
 
         return """
             $systemInstruction
             
-            [START OF WEB CONTEXT]
+            [START OF RETRIEVED WEB EVIDENCE]
             ${contextBuilder.toString().trim()}
-            [END OF WEB CONTEXT]
+            [END OF RETRIEVED WEB EVIDENCE]
             
-            User Prompt: $query
+            USER REQUEST: $query
         """.trimIndent()
     }
 

@@ -1,5 +1,6 @@
 package com.frag2win.pocketmind.data.repository
 
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -78,6 +79,43 @@ class SearchRepository @Inject constructor() {
         return@withContext freeResults
     }
 
+    private fun normalizeUrl(url: String): String {
+        return url.trim()
+            .lowercase()
+            .substringBefore("?") // Remove query parameters
+            .removeSuffix("/")
+    }
+
+    private fun normalizeTitle(title: String): String {
+        return title.lowercase()
+            .replace(Regex("[^a-z0-9]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+    }
+
+    private fun deduplicateResults(candidates: List<SearchResult>): List<SearchResult> {
+        val seenUrls = mutableSetOf<String>()
+        val seenTitles = mutableSetOf<String>()
+        val deduplicated = mutableListOf<SearchResult>()
+
+        for (item in candidates) {
+            val normUrl = normalizeUrl(item.url)
+            val normTitle = normalizeTitle(item.title)
+
+            // Skip exact/normalized URL duplicates or identical normalized titles
+            if (normUrl.isNotBlank() && seenUrls.contains(normUrl)) continue
+            if (normTitle.length > 10 && seenTitles.contains(normTitle)) continue
+
+            if (normUrl.isNotBlank()) seenUrls.add(normUrl)
+            if (normTitle.length > 10) seenTitles.add(normTitle)
+
+            deduplicated.add(item)
+            if (deduplicated.size >= 5) break
+        }
+
+        return deduplicated
+    }
+
     private fun isQualitySnippet(title: String, snippet: String): Boolean {
         val cleanSnippet = snippet.trim()
         val cleanTitle = title.trim()
@@ -129,19 +167,20 @@ class SearchRepository @Inject constructor() {
                     val jsonObj = JSONObject(bodyString)
                     val resultsArray = jsonObj.optJSONArray("results") ?: return@use
 
-                    val results = mutableListOf<SearchResult>()
-                    for (i in 0 until minOf(resultsArray.length(), 5)) {
+                    val candidates = mutableListOf<SearchResult>()
+                    for (i in 0 until minOf(resultsArray.length(), 10)) {
                         val item = resultsArray.getJSONObject(i)
                         val title = item.optString("title", "")
                         val snippet = item.optString("content", item.optString("snippet", ""))
                         val url = item.optString("url", "")
                         if (title.isNotBlank() && isQualitySnippet(title, snippet)) {
-                            results.add(SearchResult(title, snippet, url))
-                            if (results.size >= 3) break
+                            candidates.add(SearchResult(title, snippet, url))
                         }
                     }
-                    if (results.isNotEmpty()) {
-                        return results
+                    val deduplicated = deduplicateResults(candidates)
+                    if (deduplicated.isNotEmpty()) {
+                        Log.d("PocketMindRAG", "SearXNG candidates: ${candidates.size}, deduplicated: ${deduplicated.size}")
+                        return deduplicated
                     }
                 }
             } catch (_: Exception) {
@@ -161,7 +200,7 @@ class SearchRepository @Inject constructor() {
                 .get()
 
             val results = doc.select(".result")
-            val topResults = results.take(3)
+            val topResults = results.take(6)
 
             val deferredResults = topResults.map { element ->
                 async(Dispatchers.IO) {
@@ -203,7 +242,10 @@ class SearchRepository @Inject constructor() {
                 }
             }
 
-            deferredResults.awaitAll().filterNotNull()
+            val candidates = deferredResults.awaitAll().filterNotNull()
+            val deduplicated = deduplicateResults(candidates)
+            Log.d("PocketMindRAG", "DDG candidates: ${candidates.size}, deduplicated: ${deduplicated.size}")
+            deduplicated
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
