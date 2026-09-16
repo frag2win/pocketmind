@@ -5,6 +5,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ## [Unreleased] - September 16, 2026
   
   ### Added
+- **FEATURE: Offline Network Detection Guardrail**: Added `NetworkUtils.isOnline` check via `ConnectivityManager` (`NET_CAPABILITY_INTERNET` + `NET_CAPABILITY_VALIDATED`) to short-circuit search requests when offline and fall back directly to local model knowledge.
   
   ### Fixed
 - **BUG & UX: User Scroll-Intent Tracking & Atomic Stream Transition**: Implemented `userHasScrolledAway` state tracking via `LazyListState` drag interactions and true bottom offsets (`firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset == 0`), keyed scroll resets on `sessionId` change (`LaunchedEffect(sessionId)`), added WhatsApp/Slack-style "Scroll to bottom" FAB, and eliminated room insertion vs streaming placeholder double-rendering by awaiting message Flow ID presence via `awaitMessageInFlow()` before clearing `_streamingMessage`.

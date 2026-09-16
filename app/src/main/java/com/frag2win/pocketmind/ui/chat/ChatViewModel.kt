@@ -1,5 +1,6 @@
 package com.frag2win.pocketmind.ui.chat
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,7 +16,9 @@ import com.frag2win.pocketmind.domain.inference.PocketMindInference
 import com.frag2win.pocketmind.domain.inference.PromptBuilder
 import com.frag2win.pocketmind.data.local.ChatSession
 import com.frag2win.pocketmind.util.DocumentParser
+import com.frag2win.pocketmind.util.NetworkUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -41,6 +44,7 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ChatViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val inferenceEngine: PocketMindInference,
     private val chatDao: ChatDao,
     private val pdfGenerator: PdfGenerator,
@@ -343,24 +347,29 @@ class ChatViewModel @Inject constructor(
                         $actualPrompt
                     """.trimIndent()
                 } else {
-                    val requiresSearch = isSearchRequired(actualPrompt)
-                    if (requiresSearch) {
-                        _streamingMessage.value = "Searching the web..."
-                        try {
-                            val searchResults = searchRepository.performWebSearch(actualPrompt)
-                            if (searchResults.isNotEmpty()) {
-                                processedContent = PromptBuilder.buildRAGPrompt(
-                                    query = actualPrompt,
-                                    searchResults = searchResults,
-                                    displayName = modelPreferences.getDisplayName()
-                                )
-                                _streamingMessage.value = "Analyzing web results..."
-                            } else {
-                                _streamingMessage.value = "No relevant web results found. Falling back to local knowledge..."
+                    val isOnline = NetworkUtils.isOnline(appContext)
+                    if (!isOnline) {
+                        _streamingMessage.value = "Offline — using local knowledge"
+                    } else {
+                        val requiresSearch = isSearchRequired(actualPrompt)
+                        if (requiresSearch) {
+                            _streamingMessage.value = "Searching the web..."
+                            try {
+                                val searchResults = searchRepository.performWebSearch(actualPrompt)
+                                if (searchResults.isNotEmpty()) {
+                                    processedContent = PromptBuilder.buildRAGPrompt(
+                                        query = actualPrompt,
+                                        searchResults = searchResults,
+                                        displayName = modelPreferences.getDisplayName()
+                                    )
+                                    _streamingMessage.value = "Analyzing web results..."
+                                } else {
+                                    _streamingMessage.value = "No relevant web results found. Falling back to local knowledge..."
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                _streamingMessage.value = "Web search failed. Falling back to local knowledge..."
                             }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                            _streamingMessage.value = "Web search failed. Falling back to local knowledge..."
                         }
                     }
                 }
