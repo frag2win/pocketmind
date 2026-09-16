@@ -5,6 +5,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -55,6 +57,7 @@ fun ChatScreenRoot(
     viewModel: ChatViewModel = hiltViewModel(),
     onMenuClick: () -> Unit = {}
 ) {
+    val currentSessionId by viewModel.currentSessionId.collectAsState()
     val messages by viewModel.messages.collectAsState()
     val isGenerating by viewModel.isGenerating.collectAsState()
     val isModelLoading by viewModel.isModelLoading.collectAsState()
@@ -106,6 +109,7 @@ fun ChatScreenRoot(
     }
 
     ChatScreen(
+        sessionId = currentSessionId,
         messages = messages,
         isGenerating = isGenerating,
         isModelLoading = isModelLoading,
@@ -147,6 +151,7 @@ fun ChatScreenRoot(
 
 @Composable
 fun ChatScreen(
+    sessionId: Int? = null,
     messages: List<ChatMessage>,
     isGenerating: Boolean,
     isModelLoading: Boolean,
@@ -168,23 +173,37 @@ fun ChatScreen(
     var inputText by remember { mutableStateOf("") }
     var showAttachmentMenu by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
-    // 1. & 2. Performance Fix: Use reverseLayout to anchor growth to the bottom.
-    // By using reverseLayout = true, new tokens (at index 0) grow upwards from the bottom.
-    // This removes the need for LaunchedEffect-driven scrolling during token emission,
-    // which was the primary cause of the violent vertical jitter and vibration.
-    
-    val isAtBottom by remember {
-        derivedStateOf {
-            // In reverseLayout, index 0 is the bottom-most item.
-            listState.firstVisibleItemIndex == 0
+    val isDragged by listState.interactionSource.collectIsDraggedAsState()
+    var userHasScrolledAway by remember { mutableStateOf(false) }
+
+    LaunchedEffect(sessionId) {
+        listState.scrollToItem(0)
+        userHasScrolledAway = false
+    }
+
+    LaunchedEffect(isDragged) {
+        if (isDragged) {
+            userHasScrolledAway = true
         }
     }
 
-    // Only auto-scroll to snap to bottom when a new full message arrives,
-    // and ONLY if the user was already at the bottom (Respects User Gestures).
+    val isAtTrueBottom by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+        }
+    }
+
+    LaunchedEffect(isAtTrueBottom) {
+        if (isAtTrueBottom) {
+            userHasScrolledAway = false
+        }
+    }
+
+    // Only auto-scroll when user has NOT manually scrolled away
     LaunchedEffect(messages.size) {
-        if (isAtBottom && messages.isNotEmpty()) {
+        if (!userHasScrolledAway && messages.isNotEmpty()) {
             listState.animateScrollToItem(0)
         }
     }
@@ -267,6 +286,29 @@ fun ChatScreen(
                             message = message, 
                             onOpenFile = onOpenFile,
                             onExportPdf = { onExportPdf(message) }
+                        )
+                    }
+                }
+
+                if (userHasScrolledAway) {
+                    SmallFloatingActionButton(
+                        onClick = {
+                            scope.launch {
+                                listState.animateScrollToItem(0)
+                                userHasScrolledAway = false
+                            }
+                        },
+                        containerColor = if (isDark) Color(0xFF1E1F20) else Color(0xFFFFFFFF),
+                        contentColor = if (isDark) Color(0xFF22D3EE) else MaterialTheme.colorScheme.primary,
+                        shape = CircleShape,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = "Scroll to bottom",
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }

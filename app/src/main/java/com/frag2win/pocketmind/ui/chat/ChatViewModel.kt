@@ -27,11 +27,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 import java.io.File
 import javax.inject.Inject
@@ -213,6 +215,16 @@ class ChatViewModel @Inject constructor(
                     startNewChat()
                 }
             }
+        }
+    }
+
+    private suspend fun awaitMessageInFlow(insertedId: Long) {
+        try {
+            withTimeout(2000) {
+                messages.first { list -> list.any { it.id.toLong() == insertedId } }
+            }
+        } catch (_: Exception) {
+            // Fallback timeout protection in case Flow emission took > 2s
         }
     }
 
@@ -437,7 +449,7 @@ class ChatViewModel @Inject constructor(
                         finalCleanResponse = GemmaPromptFormatter.sanitizeOutput(expandedText)
                     }
                     
-                    if (isCanvas || (finalCleanResponse.contains("\"slides\"") && finalCleanResponse.contains("\"bullets\""))) {
+                    val insertedId = if (isCanvas || (finalCleanResponse.contains("\"slides\"") && finalCleanResponse.contains("\"bullets\""))) {
                         var jsonStr = finalCleanResponse.trim()
                         if (jsonStr.startsWith("```json")) jsonStr = jsonStr.substringAfter("```json")
                         else if (jsonStr.startsWith("```")) jsonStr = jsonStr.substringAfter("```")
@@ -465,6 +477,8 @@ class ChatViewModel @Inject constructor(
                         chatDao.insertMessage(ChatMessage(sessionId = sessionId, role = "assistant", content = finalCleanResponse))
                     }
                     
+                    // Seamless atomic swap: Await until messages Flow contains insertedId BEFORE clearing streaming placeholder
+                    awaitMessageInFlow(insertedId)
                     _streamingMessage.value = null
 
                     if (isFirstTurn) {
@@ -473,7 +487,8 @@ class ChatViewModel @Inject constructor(
                 } catch (e: Exception) {
                     if (e is CancellationException) throw e
                     _isModelLoading.value = false
-                    chatDao.insertMessage(ChatMessage(sessionId = sessionId, role = "assistant", content = "Error: ${e.message}"))
+                    val errId = chatDao.insertMessage(ChatMessage(sessionId = sessionId, role = "assistant", content = "Error: ${e.message}"))
+                    awaitMessageInFlow(errId)
                     _streamingMessage.value = null
                 } finally {
                     if (generationJob == coroutineContext[Job]) {

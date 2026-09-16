@@ -8,7 +8,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - Add Inline Canvas Artifacts system and Download/PocketMind export
   
   ### Fixed
-- **BUG & GUARDRAIL: Punctuation-Based Guardrail & Multi-Turn Continuation History**: Passed `history = priorHistory` to continuation `generateStream` calls in `ChatViewModel` to prevent session re-seeding, removed hardcoded keyword list overfit, and narrowed short-response heuristics (`isSuspiciouslyShortResponse`) to trigger only when short responses (<30 chars) lack terminal punctuation (`. ! ?`).
+- **BUG & UX: User Scroll-Intent Tracking & Atomic Stream Transition**: Implemented `userHasScrolledAway` state tracking via `LazyListState` drag interactions and true bottom offsets (`firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset == 0`), keyed scroll resets on `sessionId` change (`LaunchedEffect(sessionId)`), added WhatsApp/Slack-style "Scroll to bottom" FAB, and eliminated room insertion vs streaming placeholder double-rendering by awaiting message Flow ID presence via `awaitMessageInFlow()` before clearing `_streamingMessage`.
   
   ### Changed
   
