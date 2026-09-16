@@ -390,20 +390,11 @@ class ChatViewModel @Inject constructor(
                 }
 
                 var attachedSearchResults: List<SearchResult>? = null
-                var processedContent = actualPrompt
                 
                 // Handle PDF Context injection or Web Search
                 if (pdfContext != null) {
-                    processedContent = """
-                        SYSTEM: You are a document analysis assistant. Use the text below to answer.
-                        
-                        EXTRACTED TEXT:
-                        $pdfContext
-                        
-                        USER QUESTION:
-                        $actualPrompt
-                    """.trimIndent()
-                    chatDao.updateMessageContentAndSearch(userMessageId.toInt(), processedContent, null)
+                    // Canonical user message is kept in content; searchResults is null
+                    chatDao.updateMessageContentAndSearch(userMessageId.toInt(), actualPrompt, null)
                 } else {
                     val isOnline = NetworkUtils.isOnline(appContext)
                     if (!isOnline) {
@@ -443,13 +434,8 @@ class ChatViewModel @Inject constructor(
                                 val searchResults = searchRepository.performWebSearch(searchQuery)
                                 if (searchResults.isNotEmpty()) {
                                     attachedSearchResults = searchResults
-                                    processedContent = PromptBuilder.buildRAGPrompt(
-                                        query = actualPrompt,
-                                        searchResults = searchResults,
-                                        displayName = modelPreferences.getDisplayName()
-                                    )
-                                    // Update the same user message in Room DB with RAG prompt and search results
-                                    chatDao.updateMessageContentAndSearch(userMessageId.toInt(), processedContent, attachedSearchResults)
+                                    // Canonical user prompt remains in content; searchResults attached separately in Room DB
+                                    chatDao.updateMessageContentAndSearch(userMessageId.toInt(), actualPrompt, attachedSearchResults)
                                     _streamingMessage.value = "Analyzing web results..."
                                 } else {
                                     _streamingMessage.value = "No relevant web results found. Falling back to local knowledge..."
@@ -462,16 +448,27 @@ class ChatViewModel @Inject constructor(
                     }
                 }
                 
-                // Update session title with temporary snippet if it was the first message
-                if (isFirstTurn) {
-                    val displayTitle = if (uiDisplay.startsWith("__PDF_ATTACHED_FILE__:")) {
-                        uiDisplay.substringAfter(":").substringAfter(" ").take(30)
-                    } else {
-                        uiDisplay.take(30)
-                    }
-                    chatDao.updateSessionTitle(sessionId, "$displayTitle...")
+                // Construct the prompt TRANSIENTLY for the active inference call
+                val inferenceUserPrompt = when {
+                    pdfContext != null -> """
+                        SYSTEM: You are a document analysis assistant. Use the text below to answer.
+                        
+                        EXTRACTED TEXT:
+                        $pdfContext
+                        
+                        USER QUESTION:
+                        $actualPrompt
+                    """.trimIndent()
+
+                    attachedSearchResults != null -> PromptBuilder.buildRAGPrompt(
+                        query = actualPrompt,
+                        searchResults = attachedSearchResults,
+                        displayName = modelPreferences.getDisplayName()
+                    )
+
+                    else -> actualPrompt
                 }
-                
+
                 try {
                     // Architectural Patch: Ensure model is initialized before first inference
                     if (!inferenceEngine.isReady()) {
@@ -498,7 +495,7 @@ class ChatViewModel @Inject constructor(
                     var fullResponse = ""
                     var isFirstToken = true
                     val responseFlow = inferenceEngine.generateStream(
-                        userMessage = processedContent,
+                        userMessage = inferenceUserPrompt,
                         history = priorHistory,
                         displayName = modelPreferences.getDisplayName()
                     )
@@ -515,7 +512,7 @@ class ChatViewModel @Inject constructor(
                     
                     // Option 2 Deterministic Guardrail: If output is a truncated single-line title on an open-ended question, auto-continue once for full detail.
                     // Note: Uses priorHistory to pass the isNotEmpty gate and reuse the active C++ Conversation KV-cache.
-                    if (!isCanvas && isSuspiciouslyShortResponse(processedContent, finalCleanResponse)) {
+                    if (!isCanvas && isSuspiciouslyShortResponse(actualPrompt, finalCleanResponse)) {
                         _streamingMessage.value = "$finalCleanResponse\n\nExpanding explanation..."
                         val continuationPrompt = "Provide a complete and detailed explanation with key points for: '$actualPrompt'."
                         var expandedText = "$finalCleanResponse\n\n"
