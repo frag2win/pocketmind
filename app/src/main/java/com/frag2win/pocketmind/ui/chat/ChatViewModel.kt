@@ -16,8 +16,11 @@ import com.frag2win.pocketmind.domain.inference.PromptBuilder
 import com.frag2win.pocketmind.data.local.ChatSession
 import com.frag2win.pocketmind.util.DocumentParser
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -88,6 +91,20 @@ class ChatViewModel @Inject constructor(
     private val _isCanvasMode = MutableStateFlow(false)
     val isCanvasMode: StateFlow<Boolean> = _isCanvasMode.asStateFlow()
 
+    private var generationJob: Job? = null
+
+    private suspend fun cancelInFlightGeneration() {
+        val job = generationJob
+        if (job != null && job.isActive) {
+            job.cancelAndJoin()
+            if (generationJob == job) {
+                generationJob = null
+                _isGenerating.value = false
+                _streamingMessage.value = null
+            }
+        }
+    }
+
     fun toggleCanvasMode(enabled: Boolean = !_isCanvasMode.value) {
         _isCanvasMode.value = enabled
     }
@@ -132,14 +149,17 @@ class ChatViewModel @Inject constructor(
 
     fun clearChat() {
         viewModelScope.launch {
+            cancelInFlightGeneration()
             _currentSessionId.value?.let { 
                 chatDao.deleteMessagesForSession(it)
+                inferenceEngine.resetSession()
             }
         }
     }
 
     fun startNewChat() {
         viewModelScope.launch {
+            cancelInFlightGeneration()
             // Check if current session is empty
             val currentMessages = messages.value
             if (currentMessages.isEmpty() && _currentSessionId.value != null) {
@@ -147,13 +167,20 @@ class ChatViewModel @Inject constructor(
                 return@launch
             }
 
+            inferenceEngine.resetSession()
             val newSessionId = chatDao.createSession(ChatSession(title = "New Chat"))
             _currentSessionId.value = newSessionId.toInt()
         }
     }
 
     fun selectSession(sessionId: Int) {
-        _currentSessionId.value = sessionId
+        if (_currentSessionId.value != sessionId) {
+            viewModelScope.launch {
+                cancelInFlightGeneration()
+                inferenceEngine.resetSession()
+                _currentSessionId.value = sessionId
+            }
+        }
     }
 
     fun onSearchQueryChange(query: String) {
@@ -172,6 +199,8 @@ class ChatViewModel @Inject constructor(
 
     fun deleteSession(sessionId: Int) {
         viewModelScope.launch {
+            cancelInFlightGeneration()
+            inferenceEngine.resetSession()
             chatDao.deleteMessagesForSession(sessionId)
             chatDao.deleteSession(sessionId)
             
@@ -185,6 +214,24 @@ class ChatViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun isSuspiciouslyShortResponse(userQuery: String, response: String): Boolean {
+        val cleanResp = response.trim()
+        val cleanQuery = userQuery.trim()
+
+        if (cleanResp.isBlank() || cleanResp.startsWith("Error:") || cleanResp.contains("{\n") || cleanResp.contains("\"slides\"")) {
+            return false
+        }
+
+        // Do NOT trigger on short conversational turns ending with terminal punctuation (. ! ?)
+        val hasTerminalPunctuation = cleanResp.endsWith(".") || cleanResp.endsWith("!") || cleanResp.endsWith("?")
+        if (hasTerminalPunctuation) {
+            return false
+        }
+
+        // Trigger ONLY when response is extremely short (< 30 chars, no linebreaks, no terminal punctuation) on queries > 8 chars
+        return cleanQuery.length > 8 && cleanResp.length in 5..30 && !cleanResp.contains("\n")
     }
 
     private fun isSearchRequired(query: String): Boolean {
@@ -255,157 +302,188 @@ class ChatViewModel @Inject constructor(
     ) {
         if (uiDisplay.isBlank() || _isGenerating.value) return
 
-        viewModelScope.launch {
-            val isFirstTurn = messages.value.isEmpty()
-            val sessionId = _currentSessionId.value ?: run {
-                val id = chatDao.createSession(ChatSession(title = "New Chat"))
-                _currentSessionId.value = id.toInt()
-                id.toInt()
-            }
+        // Set generating flag immediately to close race condition window before launch
+        _isGenerating.value = true
+        val previousJob = generationJob
 
-            _isGenerating.value = true
-            
-            var processedContent = actualPrompt
-            
-            // Handle PDF Context injection
-            if (pdfContext != null) {
-                processedContent = """
-                    SYSTEM: You are a document analysis assistant. Use the text below to answer.
-                    
-                    EXTRACTED TEXT:
-                    $pdfContext
-                    
-                    USER QUESTION:
-                    $actualPrompt
-                """.trimIndent()
-            } else {
-                val requiresSearch = isSearchRequired(actualPrompt)
-                if (requiresSearch) {
-                    _streamingMessage.value = "Searching the web..."
-                    try {
-                        val searchResults = searchRepository.performWebSearch(actualPrompt)
-                        if (searchResults.isNotEmpty()) {
-                            processedContent = PromptBuilder.buildRAGPrompt(
-                                query = actualPrompt,
-                                searchResults = searchResults,
-                                displayName = modelPreferences.getDisplayName()
-                            )
-                            _streamingMessage.value = "Analyzing web results..."
-                        } else {
-                            _streamingMessage.value = "No relevant web results found. Falling back to local knowledge..."
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        _streamingMessage.value = "Web search failed. Falling back to local knowledge..."
-                    }
-                }
-            }
-
-            // Add user message to DB with the FULL processed content for the model
-            // and the UI display string for the user.
-            chatDao.insertMessage(
-                ChatMessage(
-                    sessionId = sessionId, 
-                    role = "user", 
-                    content = processedContent,
-                    displayContent = uiDisplay,
-                    fileUri = fileUri
-                )
-            )
-            
-            // Update session title with temporary snippet if it was the first message
-            if (isFirstTurn) {
-                val displayTitle = if (uiDisplay.startsWith("__PDF_ATTACHED_FILE__:")) {
-                    uiDisplay.substringAfter(":").substringAfter(" ").take(30)
-                } else {
-                    uiDisplay.take(30)
-                }
-                chatDao.updateSessionTitle(sessionId, "$displayTitle...")
-            }
-            
+        generationJob = viewModelScope.launch {
             try {
-                // Architectural Patch: Ensure model is initialized before first inference
-                if (!inferenceEngine.isReady()) {
-                    _isModelLoading.value = true
-                    try {
-                        val selectedVariantName = modelPreferences.getSelectedVariant()
-                        val variant = if (selectedVariantName != null) {
-                            GemmaVariant.valueOf(selectedVariantName)
-                        } else {
-                            GemmaVariant.E2B // Default
-                        }
+                previousJob?.cancelAndJoin()
+
+                val isFirstTurn = messages.value.isEmpty()
+                val sessionId = _currentSessionId.value ?: run {
+                    val id = chatDao.createSession(ChatSession(title = "New Chat"))
+                    _currentSessionId.value = id.toInt()
+                    id.toInt()
+                }
+
+                var processedContent = actualPrompt
+                
+                // Handle PDF Context injection
+                if (pdfContext != null) {
+                    processedContent = """
+                        SYSTEM: You are a document analysis assistant. Use the text below to answer.
                         
-                        if (inferenceEngine is LiteRTInferenceEngine) {
-                            inferenceEngine.initializeSafe(variant)
-                        }
-                    } finally {
-                        _isModelLoading.value = false
-                    }
-                }
-
-                // Construct the full history including the newly added user message straight from Room DB
-                val currentHistory = chatDao.getMessagesForSessionDirect(sessionId)
-                val formattedPrompt = GemmaPromptFormatter.formatHistory(
-                    messages = currentHistory,
-                    displayName = modelPreferences.getDisplayName()
-                )
-
-                // Inject temporary "Thinking..." state
-                _streamingMessage.value = "Thinking..."
-
-                var fullResponse = ""
-                var isFirstToken = true
-                val responseFlow = inferenceEngine.generateStream(formattedPrompt)
-                responseFlow.collect { token ->
-                    if (isFirstToken) {
-                        _streamingMessage.value = "" // Clear "Thinking..."
-                        isFirstToken = false
-                    }
-                    fullResponse += token
-                    _streamingMessage.value = GemmaPromptFormatter.sanitizeOutput(fullResponse)
-                }
-                
-                val finalCleanResponse = GemmaPromptFormatter.sanitizeOutput(fullResponse)
-                
-                if (isCanvas || (finalCleanResponse.contains("\"slides\"") && finalCleanResponse.contains("\"bullets\""))) {
-                    var jsonStr = finalCleanResponse.trim()
-                    if (jsonStr.startsWith("```json")) jsonStr = jsonStr.substringAfter("```json")
-                    else if (jsonStr.startsWith("```")) jsonStr = jsonStr.substringAfter("```")
-                    if (jsonStr.endsWith("```")) jsonStr = jsonStr.substringBeforeLast("```")
-                    jsonStr = jsonStr.trim()
-
-                    val title = try {
-                        JSONObject(jsonStr).optString("title", "AI Canvas Presentation")
-                    } catch (_: Exception) {
-                        "AI Canvas Presentation"
-                    }
-
-                    chatDao.insertMessage(
-                        ChatMessage(
-                            sessionId = sessionId,
-                            role = "assistant",
-                            content = "Here is your generated AI Canvas presentation:",
-                            artifactType = "PPTX",
-                            artifactTitle = title,
-                            artifactData = jsonStr,
-                            artifactStatus = "READY"
-                        )
-                    )
+                        EXTRACTED TEXT:
+                        $pdfContext
+                        
+                        USER QUESTION:
+                        $actualPrompt
+                    """.trimIndent()
                 } else {
-                    chatDao.insertMessage(ChatMessage(sessionId = sessionId, role = "assistant", content = finalCleanResponse))
+                    val requiresSearch = isSearchRequired(actualPrompt)
+                    if (requiresSearch) {
+                        _streamingMessage.value = "Searching the web..."
+                        try {
+                            val searchResults = searchRepository.performWebSearch(actualPrompt)
+                            if (searchResults.isNotEmpty()) {
+                                processedContent = PromptBuilder.buildRAGPrompt(
+                                    query = actualPrompt,
+                                    searchResults = searchResults,
+                                    displayName = modelPreferences.getDisplayName()
+                                )
+                                _streamingMessage.value = "Analyzing web results..."
+                            } else {
+                                _streamingMessage.value = "No relevant web results found. Falling back to local knowledge..."
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            _streamingMessage.value = "Web search failed. Falling back to local knowledge..."
+                        }
+                    }
+                }
+
+                // 1. Fetch prior history BEFORE inserting current user turn into Room DB
+                val priorHistory = chatDao.getMessagesForSessionDirect(sessionId)
+
+                // 2. Add user message to DB with the FULL processed content for the model
+                // and the UI display string for the user.
+                chatDao.insertMessage(
+                    ChatMessage(
+                        sessionId = sessionId, 
+                        role = "user", 
+                        content = processedContent,
+                        displayContent = uiDisplay,
+                        fileUri = fileUri
+                    )
+                )
+                
+                // Update session title with temporary snippet if it was the first message
+                if (isFirstTurn) {
+                    val displayTitle = if (uiDisplay.startsWith("__PDF_ATTACHED_FILE__:")) {
+                        uiDisplay.substringAfter(":").substringAfter(" ").take(30)
+                    } else {
+                        uiDisplay.take(30)
+                    }
+                    chatDao.updateSessionTitle(sessionId, "$displayTitle...")
                 }
                 
-                _streamingMessage.value = null
+                try {
+                    // Architectural Patch: Ensure model is initialized before first inference
+                    if (!inferenceEngine.isReady()) {
+                        _isModelLoading.value = true
+                        try {
+                            val selectedVariantName = modelPreferences.getSelectedVariant()
+                            val variant = if (selectedVariantName != null) {
+                                GemmaVariant.valueOf(selectedVariantName)
+                            } else {
+                                GemmaVariant.E2B // Default
+                            }
+                            
+                            if (inferenceEngine is LiteRTInferenceEngine) {
+                                inferenceEngine.initializeSafe(variant)
+                            }
+                        } finally {
+                            _isModelLoading.value = false
+                        }
+                    }
 
-                if (isFirstTurn) {
-                    generateSessionTitle(sessionId, uiDisplay, finalCleanResponse)
+                    // Inject temporary "Thinking..." state
+                    _streamingMessage.value = "Thinking..."
+
+                    var fullResponse = ""
+                    var isFirstToken = true
+                    val responseFlow = inferenceEngine.generateStream(
+                        userMessage = processedContent,
+                        history = priorHistory,
+                        displayName = modelPreferences.getDisplayName()
+                    )
+                    responseFlow.collect { token ->
+                        if (isFirstToken) {
+                            _streamingMessage.value = "" // Clear "Thinking..."
+                            isFirstToken = false
+                        }
+                        fullResponse += token
+                        _streamingMessage.value = GemmaPromptFormatter.sanitizeOutput(fullResponse)
+                    }
+                    
+                    var finalCleanResponse = GemmaPromptFormatter.sanitizeOutput(fullResponse)
+                    
+                    // Option 2 Deterministic Guardrail: If output is a truncated single-line title on an open-ended question, auto-continue once for full detail.
+                    // Note: Uses priorHistory to pass the isNotEmpty gate and reuse the active C++ Conversation KV-cache.
+                    if (!isCanvas && isSuspiciouslyShortResponse(processedContent, finalCleanResponse)) {
+                        _streamingMessage.value = "$finalCleanResponse\n\nExpanding explanation..."
+                        val continuationPrompt = "Provide a complete and detailed explanation with key points for: '$actualPrompt'."
+                        var expandedText = "$finalCleanResponse\n\n"
+                        val continuationFlow = inferenceEngine.generateStream(
+                            userMessage = continuationPrompt,
+                            history = priorHistory,
+                            displayName = modelPreferences.getDisplayName()
+                        )
+                        continuationFlow.collect { token ->
+                            expandedText += token
+                            _streamingMessage.value = GemmaPromptFormatter.sanitizeOutput(expandedText)
+                        }
+                        finalCleanResponse = GemmaPromptFormatter.sanitizeOutput(expandedText)
+                    }
+                    
+                    if (isCanvas || (finalCleanResponse.contains("\"slides\"") && finalCleanResponse.contains("\"bullets\""))) {
+                        var jsonStr = finalCleanResponse.trim()
+                        if (jsonStr.startsWith("```json")) jsonStr = jsonStr.substringAfter("```json")
+                        else if (jsonStr.startsWith("```")) jsonStr = jsonStr.substringAfter("```")
+                        if (jsonStr.endsWith("```")) jsonStr = jsonStr.substringBeforeLast("```")
+                        jsonStr = jsonStr.trim()
+
+                        val title = try {
+                            JSONObject(jsonStr).optString("title", "AI Canvas Presentation")
+                        } catch (_: Exception) {
+                            "AI Canvas Presentation"
+                        }
+
+                        chatDao.insertMessage(
+                            ChatMessage(
+                                sessionId = sessionId,
+                                role = "assistant",
+                                content = "Here is your generated AI Canvas presentation:",
+                                artifactType = "PPTX",
+                                artifactTitle = title,
+                                artifactData = jsonStr,
+                                artifactStatus = "READY"
+                            )
+                        )
+                    } else {
+                        chatDao.insertMessage(ChatMessage(sessionId = sessionId, role = "assistant", content = finalCleanResponse))
+                    }
+                    
+                    _streamingMessage.value = null
+
+                    if (isFirstTurn) {
+                        generateSessionTitle(sessionId, uiDisplay, finalCleanResponse)
+                    }
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    _isModelLoading.value = false
+                    chatDao.insertMessage(ChatMessage(sessionId = sessionId, role = "assistant", content = "Error: ${e.message}"))
+                    _streamingMessage.value = null
+                } finally {
+                    if (generationJob == coroutineContext[Job]) {
+                        _isGenerating.value = false
+                        _streamingMessage.value = null
+                    }
                 }
             } catch (e: Exception) {
-                _isModelLoading.value = false
-                chatDao.insertMessage(ChatMessage(sessionId = sessionId, role = "assistant", content = "Error: ${e.message}"))
-                _streamingMessage.value = null
-            } finally {
-                _isGenerating.value = false
+                if (e is CancellationException) throw e
+                e.printStackTrace()
             }
         }
     }

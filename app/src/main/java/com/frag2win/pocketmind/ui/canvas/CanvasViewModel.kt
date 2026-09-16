@@ -84,7 +84,10 @@ class CanvasViewModel @Inject constructor(
                 val prompt = PromptBuilder.buildCanvasPrompt(userPrompt, canvasType)
                 var accumulated = ""
 
-                inferenceEngine.generateStream(prompt).collect { token ->
+                inferenceEngine.generateStream(
+                    userMessage = prompt,
+                    displayName = modelPreferences.getDisplayName()
+                ).collect { token ->
                     accumulated += token
                     _streamingRawPayload.value = accumulated
                 }
