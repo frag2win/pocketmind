@@ -10,6 +10,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **FEATURE: Hybrid Search Classifier & SearXNG Scraping**: Upgraded `ChatViewModel` with hybrid fast-path keyword and model classifier checks, standalone query rewriter, LRU cache (~20 entries, 10 min TTL), SearXNG public instance search backend, parallelized DDG scraping with `Readability4J`.
   
   ### Fixed
+- Fix search candidate pool, safe deduplication, and structured source RAG prompt
 - **BUG & RAG: Search Candidate Pool, Safe Deduplication & Structured Source RAG Prompt**: Expanded search candidate retrieval pool up to 10 candidates, implemented safe deterministic deduplication (`normalizeUrl` + `normalizeTitle`) in `SearchRepository`, extracted domain hostnames in `PromptBuilder`, and structured RAG context blocks into `SOURCE` units with strict anti-meta-phrasing guidelines.
 - **BUG & RAG: Empty Search Retrieval Transient Fallback**: Added explicit transient fallback system prompt for Web-RAG requests when web retrieval returns empty or fails, instructing Gemma to state that live results could not be retrieved rather than falling back to document summarization ("Please provide the text you want me to summarize").
 - **BUG & RAG: Conversational Query Normalization & Snippet Quality Filter**: Added `normalizeSearchQuery` in `ChatViewModel` to clean conversational prefixes into entity-preserving keywords, implemented `isQualitySnippet` filter in `SearchRepository` to discard metadata/question headers, and strengthened `PromptBuilder.buildRAGPrompt` synthesis instructions.
@@ -32,6 +33,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - Add Inline Canvas Artifacts system and Download/PocketMind export
   
   ### Fixed
+- Fix search candidate pool, safe deduplication, and structured source RAG prompt
 - **BUG & GUARDRAIL: Punctuation-Based Guardrail & Multi-Turn Continuation History**: Passed `history = priorHistory` to continuation `generateStream` calls in `ChatViewModel` to prevent session re-seeding, removed hardcoded keyword list overfit, and narrowed short-response heuristics (`isSuspiciouslyShortResponse`) to trigger only when short responses (<30 chars) lack terminal punctuation (`. ! ?`).
   
   ### Changed
@@ -46,6 +48,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **FEATURE: Inline Canvas Artifacts System**: Added inline `ArtifactCard` composable in the chat stream, popover attachment menu with "Upload files" and "Canvas Mode", embedded artifact payload state in Room DB (`ChatMessage`), full-screen WebView preview sheet, and file export to `Download/PocketMind`.
   
   ### Fixed
+- Fix search candidate pool, safe deduplication, and structured source RAG prompt
 - **BUG: Token Output Serialization**: Refactored LiteRTInferenceEngine token extraction logic to extract raw Content.Text fragments from Message turns instead of relying on toString(), preventing metadata leak into the chat stream and adding mid-stream exception handling.
 - **UI: Navigation & TopBar Cleanup**: Removed non-functional dropdown arrow from top app bar, replaced hardcoded developer name in navigation drawer and empty chat state with clean placeholders, and standardized drawer padding grid.
 - **UI: Settings Top Padding & User Profile**: Reduced top inset gap on Settings screen, added Back navigation button, added Display Name input bound to EncryptedSharedPreferences, and dynamically updated navigation drawer user label.
@@ -76,6 +79,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **FEATURE: Auto-Titling**: Implemented automatic chat session titling after the first exchange, using the local AI to summarize the conversation into a 3-5 word title.
 
   ### Fixed
+- Fix search candidate pool, safe deduplication, and structured source RAG prompt
 - **UI: Bouncing & Jitter**: Fundamentally resolved the violent screen bouncing and jitter during streaming by implementing `reverseLayout` and `Hybrid Rendering` (Text for streaming, Markdown for final).
 - **UI: Scroll Hijacking**: Fixed the auto-scroll conflict by implementing a state-driven scroll lock that respects user manual gestures.
 - **UI: Markdown Flashing**: Eliminated raw syntax flashing (e.g., `**`, `##`) during streaming by creating a stream-safe `toLiveAnnotatedString` parser.
@@ -90,6 +94,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - Register GitHub navigation routes
   
   ### Fixed
+- Fix search candidate pool, safe deduplication, and structured source RAG prompt
   
   ### Changed
 - Complete removal of GitHub integration
@@ -106,6 +111,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - Implement Web Search (RAG) grounding via Tavily API
   
   ### Fixed
+- Fix search candidate pool, safe deduplication, and structured source RAG prompt
   
   ### Changed
 - Complete removal of GitHub integration
@@ -127,6 +133,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **UI: Professional Markdown**: Integrated Material 3 Markdown rendering with custom slate-themed colors and typography.
   
   ### Fixed
+- Fix search candidate pool, safe deduplication, and structured source RAG prompt
 - Implement Midnight Slate premium theme and Markdown rendering
 - **BUG: Keyboard Visibility**: Fixed issue where the input field was hidden behind the keyboard by correctly applying `imePadding`.
 - **BUG: Text Blinking**: Mitigated text "blinking" during streaming by ensuring the Markdown component maintains state between updates.
@@ -147,6 +154,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - Complete production architecture overhaul, custom downloader, and security patches
   
   ### Fixed
+- Fix search candidate pool, safe deduplication, and structured source RAG prompt
 - Implement Midnight Slate premium theme and Markdown rendering
 - **BUG: ClassCastException**: Resolved crash when streaming tokens by correctly handling the LiteRT-LM `Message` object.
 - **BUG: Permissions**: Added missing `INTERNET` and `ACCESS_NETWORK_STATE` permissions to `AndroidManifest.xml`.
@@ -182,6 +190,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **BUG: Model Downloads**: Fixed 404 error by updating Gemma 4 download URLs to official `litert-community` paths.
   
   ### Fixed
+- Fix search candidate pool, safe deduplication, and structured source RAG prompt
 - Implement Midnight Slate premium theme and Markdown rendering
 - **BUG: ClassCastException**: Resolved crash when streaming tokens by correctly handling the LiteRT-LM `Message` object.
 - **BUG: Permissions**: Added missing `INTERNET` and `ACCESS_NETWORK_STATE` permissions to `AndroidManifest.xml`.
@@ -198,6 +207,7 @@ All notable changes to the PocketMind project will be documented in this file.
 ## [Unreleased] - July 01, 2026
 
 ### Fixed
+- Fix search candidate pool, safe deduplication, and structured source RAG prompt
 - Implement Midnight Slate premium theme and Markdown rendering
 - Fix model download URLs to litert-community paths
 - **MainActivity.kt:** Resolved "Unresolved reference 'androidx'" build error by correcting extension function call syntax and adding missing imports for `consumeWindowInsets` and `imePadding`.
