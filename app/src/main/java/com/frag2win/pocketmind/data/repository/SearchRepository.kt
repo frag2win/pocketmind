@@ -80,17 +80,19 @@ class SearchRepository @Inject constructor() {
 
     private fun isQualitySnippet(title: String, snippet: String): Boolean {
         val cleanSnippet = snippet.trim()
+        val cleanTitle = title.trim()
 
         if (cleanSnippet.length < 25) return false
 
-        val lower = cleanSnippet.lowercase()
+        val lowerSnippet = cleanSnippet.lowercase()
+        val lowerTitle = cleanTitle.lowercase()
 
         // Reject navigation/landing-page labels or search engine metadata
         val metadataPhrases = listOf(
             "google news", "explore top news stories", "top stories", "overview",
             "search engine", "sign in", "all rights reserved", "cookie policy"
         )
-        if (metadataPhrases.any { lower == it || lower == "$it." }) return false
+        if (metadataPhrases.any { lowerSnippet == it || lowerSnippet == "$it." || lowerTitle == it }) return false
 
         // Reject question-only snippets that end in '?' and have no factual sentences
         if (cleanSnippet.endsWith("?") && cleanSnippet.length < 65 && !cleanSnippet.contains(".")) {
