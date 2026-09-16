@@ -14,6 +14,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - Persistent LiteRT Conversation, cancellation safety, and response guardrails
   
   ### Changed
+- Complete removal of GitHub integration
   
   ### Removed
 - **REMOVAL: GitHub Integration Removed**: Removed all GitHub-specific components, including `GitHubService`, `GitHubRepository`, `GitHubScreen`, `GitHubViewModel`, Personal Access Token settings, GitHub prompt helpers, and navigation routes.
@@ -27,6 +28,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **BUG & GUARDRAIL: Punctuation-Based Guardrail & Multi-Turn Continuation History**: Passed `history = priorHistory` to continuation `generateStream` calls in `ChatViewModel` to prevent session re-seeding, removed hardcoded keyword list overfit, and narrowed short-response heuristics (`isSuspiciouslyShortResponse`) to trigger only when short responses (<30 chars) lack terminal punctuation (`. ! ?`).
   
   ### Changed
+- Complete removal of GitHub integration
   
   ## [Unreleased] - August 06, 2026
   
@@ -45,6 +47,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **BUG & UX: Prompt Tag Leak & Theme Adaptive Rendering**: Sanitized raw model output to strip `<start_of_turn>` / `<end_of_turn>` prompt tags, fixed token space stripping during streaming, restored instruction-tuned Gemma turn history formatting, eliminated Room DB async flow race condition via direct history query, and made Markdown, Streaming text, background gradients, user bubbles, and input pill adaptively styled for full high-contrast legibility in both Android Light Mode and Dark Mode.
   
   ### Changed
+- Complete removal of GitHub integration
   
   ## [Unreleased] - July 13, 2026
   ### Added
@@ -82,6 +85,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ### Fixed
   
   ### Changed
+- Complete removal of GitHub integration
 - Update changelog and status for GitHub UI
 - optimize streaming message rendering and update markdown styling
 - **PERF: Streaming**: Optimized chat streaming performance and markdown rendering styling.
@@ -97,6 +101,7 @@ All notable changes to the PocketMind project will be documented in this file.
   ### Fixed
   
   ### Changed
+- Complete removal of GitHub integration
 - Update changelog and status for GitHub UI
 - optimize streaming message rendering and update markdown styling
   
@@ -141,6 +146,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **BUG: Model Downloads**: Fixed 404 error by updating Gemma 4 download URLs to official `litert-community` paths.
   
   ### Changed
+- Complete removal of GitHub integration
 - Update changelog and status for GitHub UI
 - optimize streaming message rendering and update markdown styling
 - Add README, ABOUT, and CODE_OF_CONDUCT for community standards
@@ -175,6 +181,7 @@ All notable changes to the PocketMind project will be documented in this file.
 - **BUG: Model Downloads**: Fixed 404 error by updating Gemma 4 download URLs to official `litert-community` paths.
   
   ### Changed
+- Complete removal of GitHub integration
 - Update changelog and status for GitHub UI
 - optimize streaming message rendering and update markdown styling
 - Add README, ABOUT, and CODE_OF_CONDUCT for community standards
