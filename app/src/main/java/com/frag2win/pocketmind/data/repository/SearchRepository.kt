@@ -1,16 +1,13 @@
 package com.frag2win.pocketmind.data.repository
 
-import com.frag2win.pocketmind.data.local.ModelPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import net.dankito.readability4j.Readability4J
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import org.jsoup.Jsoup
 import java.net.URLDecoder
@@ -26,9 +23,7 @@ data class SearchResult(
 )
 
 @Singleton
-class SearchRepository @Inject constructor(
-    private val modelPreferences: ModelPreferences
-) {
+class SearchRepository @Inject constructor() {
     private val client = OkHttpClient.Builder()
         .connectTimeout(8, TimeUnit.SECONDS)
         .readTimeout(8, TimeUnit.SECONDS)
@@ -68,73 +63,19 @@ class SearchRepository @Inject constructor(
             return@withContext cachedResults
         }
 
-        val apiKey = modelPreferences.getTavilyApiKey()
-        
-        // 1. Try Tavily API if key is present
-        if (!apiKey.isNullOrBlank()) {
-            val tavilyResults = performTavilySearch(apiKey, query)
-            if (tavilyResults.isNotEmpty()) {
-                putInCache(normalizedKey, tavilyResults)
-                return@withContext tavilyResults
-            }
-        }
-
-        // 2. Try SearXNG public JSON API instances
+        // 1. Try SearXNG public JSON API instances
         val searxngResults = performSearXNGSearch(query)
         if (searxngResults.isNotEmpty()) {
             putInCache(normalizedKey, searxngResults)
             return@withContext searxngResults
         }
 
-        // 3. Fallback to parallelized DuckDuckGo deep-scrape
+        // 2. Fallback to parallelized DuckDuckGo deep-scrape
         val freeResults = performFreeSearch(query)
         if (freeResults.isNotEmpty()) {
             putInCache(normalizedKey, freeResults)
         }
         return@withContext freeResults
-    }
-
-    private fun performTavilySearch(apiKey: String, query: String): List<SearchResult> {
-        val jsonPayload = JSONObject().apply {
-            put("api_key", apiKey)
-            put("query", query)
-            put("search_depth", "basic")
-            put("max_results", 3)
-        }
-
-        val mediaType = "application/json".toMediaTypeOrNull()
-        val body = jsonPayload.toString().toRequestBody(mediaType)
-
-        val request = Request.Builder()
-            .url("https://api.tavily.com/search")
-            .post(body)
-            .build()
-
-        return try {
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return emptyList()
-                
-                val responseBody = response.body?.string() ?: return emptyList()
-                val jsonResponse = JSONObject(responseBody)
-                val resultsArray = jsonResponse.getJSONArray("results")
-                
-                val searchResults = mutableListOf<SearchResult>()
-                for (i in 0 until resultsArray.length()) {
-                    val obj = resultsArray.getJSONObject(i)
-                    searchResults.add(
-                        SearchResult(
-                            title = obj.optString("title", ""),
-                            snippet = obj.optString("content", ""),
-                            url = obj.optString("url", "")
-                        )
-                    )
-                }
-                searchResults
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            emptyList()
-        }
     }
 
     private fun performSearXNGSearch(query: String): List<SearchResult> {

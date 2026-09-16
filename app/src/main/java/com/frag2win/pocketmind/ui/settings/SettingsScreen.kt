@@ -33,7 +33,6 @@ fun SettingsScreen(
     val selectedVariant by viewModel.selectedVariant.collectAsState()
     val isAutoSelect by viewModel.isAutoSelect.collectAsState()
     val hfToken by viewModel.hfToken.collectAsState()
-    val tavilyApiKey by viewModel.tavilyApiKey.collectAsState()
     val downloadStatuses by viewModel.downloadStatuses.collectAsState()
     val ram = viewModel.getAvailableRamGb()
     val scrollState = rememberScrollState()
@@ -107,30 +106,6 @@ fun SettingsScreen(
             )
             Text(
                 "Required for gated Gemma models.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Web Search Section
-            Text(
-                text = "Web Search (RAG)",
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            OutlinedTextField(
-                value = tavilyApiKey,
-                onValueChange = { viewModel.updateTavilyApiKey(it) },
-                label = { Text("Tavily API Key (Optional)") },
-                placeholder = { Text("tvly-...") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation()
-            )
-            Text(
-                "Optional API key for Tavily search. If empty, PocketMind automatically uses free DuckDuckGo search.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline
             )

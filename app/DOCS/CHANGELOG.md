@@ -17,6 +17,7 @@ All notable changes to the PocketMind project will be documented in this file.
   
   ### Removed
 - **REMOVAL: GitHub Integration Removed**: Removed all GitHub-specific components, including `GitHubService`, `GitHubRepository`, `GitHubScreen`, `GitHubViewModel`, Personal Access Token settings, GitHub prompt helpers, and navigation routes.
+- **REMOVAL: Tavily Integration Removed**: Removed third-party Tavily API key preferences, settings UI input, and API service calls in favor of PocketMind's fully keyless, free Web Search engine (SearXNG + DuckDuckGo Deep Scrape).
   
   ## [Unreleased] - September 11, 2026
   

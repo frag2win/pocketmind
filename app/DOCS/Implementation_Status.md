@@ -48,8 +48,8 @@ This document tracks the current progress of the project, mapping implemented fe
 - [x] "Clear Chat" manual reset functionality
 - [x] Automatic Chat Session Titling (AI-generated summaries)
 - [x] Full-Text Search (FTS4 local indexing)
-- [x] Web-RAG (Real-time search grounding via Tavily/DuckDuckGo)
-- [x] Deep Web-RAG (On-device page scraping for live context)
+- [x] Web-RAG (Real-time keyless search grounding via SearXNG & parallelized DuckDuckGo)
+- [x] Deep Web-RAG (On-device Readability4J page scraping for live context)
 - [x] Optimized Streaming UI (Jitter-free, reverseLayout, Hybrid Markdown)
 
 ---
